@@ -10,6 +10,7 @@
         <body>        
           <script src="js/build/three.js"></script>
           <script src="js/controls/OrbitControls.js"></script>
+          <script src="js/src/WorldGrid.js"></script>
           <script>
             var WIDTH = window.innerWidth,
                 HEIGHT = window.innerHeight;
@@ -21,11 +22,11 @@
 
             var scene = new THREE.Scene();
             //var camera = new THREE.OrthographicCamera()
-            var camera = new THREE.PerspectiveCamera(90, WIDTH/HEIGHT);
+            var camera = new THREE.PerspectiveCamera(104, WIDTH/HEIGHT);
             scene.add(camera);
-            camera.position.y = 0; 
-            camera.position.z = 3;            
-
+            camera.position.x = 3; 
+            camera.position.z = 3;
+            camera.rotation.y = -Math.PI / 2;            
 
             var controls = new THREE.OrbitControls( camera );
 
@@ -41,10 +42,11 @@
             // Set the background color of the scene.
             var clearColor = new THREE.Color(0x00ffff);
             renderer.setClearColor(clearColor, 1);
-
-            var geometry = new THREE.BoxGeometry( 1, 1, 1 );
+            
+            var world = new WorldGrid();
+            var geometry = new THREE.BoxGeometry(world.getColor());
             var material = new THREE.MeshLambertMaterial( { color: 0x00ff00 } );
-            var cube = new THREE.Mesh( geometry, material );
+            var cube = new THREE.Mesh( geometry, material );            
             scene.add(cube);
 
             // Create a light, set its position, and add it to the scene.
