@@ -12,169 +12,230 @@
           <script src="js/controls/OrbitControls.js"></script>
           <script src="js/src/WorldGrid.js"></script>
           <script>
-            var WIDTH = window.innerWidth,
-                HEIGHT = window.innerHeight;
+            var camera, scene, renderer, world, dim;
+            var plight, alight, cube;
 
-            var raycaster;
-            var mouse = new THREE.Vector2();
+            var mouse, controls, raycaster;
+            var isShiftDown = false;
 
-            raycaster = new THREE.Raycaster();
-            document.addEventListener('mousemove', function(event) {
-              event.preventDefault();
-				      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-				      mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-            }, false);
-            document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+            var targetGeo, targetMat, targetMesh;
+            var cubeGeo, cubeMat;
 
-            // Create a renderer and add it to the DOM.
-            renderer = new THREE.WebGLRenderer({antialias:true});
-            renderer.setSize(WIDTH, HEIGHT);
-            document.body.appendChild(renderer.domElement);
-
-            var scene = new THREE.Scene();
             var blocks = [];
-            var viewSize = 12;
-            var aspectRatio = WIDTH / HEIGHT;
-            var camera = new THREE.OrthographicCamera(-aspectRatio * viewSize / 2, aspectRatio * viewSize / 2, viewSize / 2, -viewSize / 2, -600, 600);
-            //var camera = new THREE.PerspectiveCamera(104, WIDTH/HEIGHT);
-            scene.add(camera);
-            camera.position.set(3, 2, -1);
 
-            var controls = new THREE.OrbitControls(camera);
+            init();
+            render();
 
-            // Create an event listener that resizes the renderer with the browser window.
-            window.addEventListener('resize', function() {
-              var WIDTH = window.innerWidth,
-                  HEIGHT = window.innerHeight,
-                  aspectRatio = WIDTH / HEIGHT;
+            function init() {
+              scene = new THREE.Scene();
+              dim = new THREE.Vector3(4,6,4);
 
+              var viewSize = 12;
+              var WIDTH = window.innerWidth;
+              var HEIGHT = window.innerHeight;
+              var aspectRatio = WIDTH / HEIGHT;
+              //camera = new THREE.OrthographicCamera(-aspectRatio * viewSize / 2, aspectRatio * viewSize / 2, viewSize / 2, -viewSize / 2, -600, 600);
+              camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
+              scene.add(camera);
+              camera.position.set(-1, 1, -0.5);
+
+              // Create a renderer and add it to the DOM.
+              renderer = new THREE.WebGLRenderer({antialias:true});
               renderer.setSize(WIDTH, HEIGHT);
-              camera.left = -aspectRatio * viewSize / 2;
-              camera.right = aspectRatio * viewSize / 2;
-              camera.top = viewSize / 2;
-              camera.bottom = -viewSize / 2;
-              camera.updateProjectionMatrix();
-            });
+              document.body.appendChild(renderer.domElement);
 
-            // Set the background color of the scene.
-            var clearColor = new THREE.Color(0x6084fa);
-            renderer.setClearColor(clearColor, 1);
+              mouse = new THREE.Vector2();
+              controls = new THREE.OrbitControls(camera);
+              raycaster = new THREE.Raycaster();
 
-            // Draw from world
-            var dim = new THREE.Vector3(3, 2, 4),
-                world = new WorldGrid( dim.x, dim.y, dim.z );
-            var lambertGreen = new THREE.MeshLambertMaterial( { color: 0xaaddaa, vertexColors: THREE.FaceColors } ),
-                lambertGray = new THREE.MeshLambertMaterial( { color: 0x848484 } );
-            var geometry = new THREE.BoxGeometry(1, 1, 1);
+              // Create event listeners for mouse and keyboard inputs.
+              document.addEventListener('mousemove', onDocumentMouseMove, false);
+              document.addEventListener('mousedown', onDocumentMouseDown, false);
+              document.addEventListener('keydown', onDocumentKeyDown, false);
+              document.addEventListener('keyup', onDocumentKeyUp, false);
+              // Create an event listener that resizes the renderer with the browser window.
+              window.addEventListener('resize', function() {
+                var WIDTH = window.innerWidth,
+                    HEIGHT = window.innerHeight,
+                    aspectRatio = WIDTH / HEIGHT;
 
-            for(var x = 0; x < world.x; x++) {
-              for(var y = 0; y < world.y; y++) {
-                for(var z = 0; z < world.z; z++) {
+                renderer.setSize(WIDTH, HEIGHT);
+                camera.left = -aspectRatio * viewSize / 2;
+                camera.right = aspectRatio * viewSize / 2;
+                camera.top = viewSize / 2;
+                camera.bottom = -viewSize / 2;
+                camera.updateProjectionMatrix();
+              });
+
+              // Set the background color of the scene.
+              var clearColor = new THREE.Color(0x6084fa);
+              renderer.setClearColor(clearColor, 1);
+
+              // Set up cube attributes
+              cubeMat = new THREE.MeshBasicMaterial( { vertexColors: THREE.FaceColors } );
+              cubeGeo = new THREE.BoxGeometry(1, 1, 1);
+              cubeGeo.computeFaceNormals();
+
+              // Add lights to the scene
+              plight = new THREE.PointLight(0xffffff);
+              plight.position.set(12,20,8);
+              scene.add(plight);
+              alight = new THREE.AmbientLight( 0x0a84ff, 0.5 );
+              scene.add(alight);
+
+              // Add rollover geometry to the scene
+              targetGeo = new THREE.BoxGeometry(1, 1, 1);
+              targetMat = new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.5, transparent: true } );
+              targetMesh = new THREE.Mesh(targetGeo, targetMat);
+              scene.add(targetMesh);
+
+              loadWorld(dim);
+            }
+
+            function loadWorld(dim) {
+              // Draw from world
+              world = new WorldGrid( dim.x, dim.y, dim.z );
+              for(var x = 0; x < world.x; x++) {
+                for(var y = 0; y < world.y; y++) {
+                  for(var z = 0; z < world.z; z++) {
                     if(world.grid[x][y][z] == 1) {
-                      var cube = new THREE.Mesh(geometry, lambertGreen);
+                      cube = new THREE.Mesh(cubeGeo, cubeMat);
                       cube.position.set(x - (dim.x - 1) / 2, y - (dim.y - 1) / 2, z - (dim.z - 1) / 2);
-                      cube.name = x+""+y+""+z;
-
                       cube.material.vertexColors = THREE.FaceColors;
-                      cube.geometry.faces[0].color.setRGB(1, 0, 0);
-                      cube.geometry.faces[1].color.setRGB(1, 0, 0);
-                      cube.geometry.faces[2].color.setRGB(0, 0, 1)
-                      cube.geometry.faces[3].color.setRGB(0, 0, 1);
-                      // cube.geometry.faces[4].color.setRGB(1, 0, 1);
-                      // cube.geometry.faces[5].color.setRGB(0, 1, 1);
-                      // cube.geometry.faces[6].color.setRGB(1, 1, 1);
-                      // cube.geometry.faces[7].color.setRGB(.2, .7, 0);
-                      // cube.geometry.faces[8].color.setRGB(0, 1, 1);
-                      // cube.geometry.faces[9].color.setRGB(0, 1, 1);
-                      // cube.geometry.faces[10].color.setRGB(0, 1, 1);
-                      // cube.geometry.faces[11].color.setRGB(0, 1, 1);
-                      // for(var i = 0 ; i < cube.geometry.faces.length; i++){
-                      //   var face = cube.geometry.faces[i];
-                      //   face.color.setRGB(1 / i, 1 / i, 1 / i);
-                      // }
+                      cube.geometry.faces[0].color.setRGB(.7, 0, 0);
+                      cube.geometry.faces[1].color.setRGB(.7, 0, 0);
+                      cube.geometry.faces[2].color.setRGB(0, .7, 0)
+                      cube.geometry.faces[3].color.setRGB(0, .7, 0);
+                      cube.geometry.faces[8].color.setRGB(1, .4, 0);
+                      cube.geometry.faces[9].color.setRGB(1, .4, 0);
+                      cube.geometry.faces[10].color.setRGB(0, .1, .7);
+                      cube.geometry.faces[11].color.setRGB(0, .1, .7);
 
                       cube.geometry.elementsNeedUpdate = true;
 
                       scene.add(cube);
                       blocks.push(cube);
                     }
+                  }
                 }
               }
             }
-            for(var x = 0; x < world.x; x++) {
-              for(var z = 0; z < world.z; z++) {
-                  var ground = new THREE.Mesh(geometry, lambertGray);
-                  ground.scale.y = .5;
-                  ground.position.set(x - (dim.x - 1) / 2, -1.25, z - (dim.z - 1) / 2);
-                  scene.add(ground);
+
+            function onDocumentMouseMove(event) {
+              event.preventDefault();
+              mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1 );
+              raycaster.setFromCamera( mouse, camera );
+              var intersects = raycaster.intersectObjects( scene.children );
+              if ( intersects.length > 0 ) {
+                var intersect = intersects[ 0 ];
+                var worldPos = intersect.object.position;
+                var gridPos = new THREE.Vector3(worldPos.x+(dim.x-1)/2,worldPos.y+(dim.y-1)/2,worldPos.z+(dim.z-1)/2);
+                var nor = intersect.face.normal;
+                targetMesh.position.copy( worldPos );
+                //targetMesh.position.divideScalar( 1 ).floor().multiplyScalar( 1 ).addScalar( .5 );
+              }
+              render();
+            }
+
+            function onDocumentMouseDown(event) {
+              event.preventDefault();
+      				mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1 );
+              raycaster.setFromCamera( mouse, camera );
+              var intersects = raycaster.intersectObjects(scene.children);
+              if(intersects.length > 0)
+              {
+                var intersect = intersects[0];
+                var worldPos = intersect.object.position;
+                var gridPos = new THREE.Vector3(worldPos.x+(dim.x-1)/2,worldPos.y+(dim.y-1)/2,worldPos.z+(dim.z-1)/2);
+                var nor = intersect.face.normal;
+                var absNor = new THREE.Vector3(Math.abs(nor.x), Math.abs(nor.y), Math.abs(nor.z));
+
+                var voxel = new THREE.Mesh(cubeGeo, cubeMat);
+                voxel.position.copy(worldPos).add(nor);
+
+                console.log("clicked on " + gridPos.x + "," + gridPos.y + "," + gridPos.z);
+                console.log("normal = " + nor.x + "," + nor.y + "," + nor.z);
+
+                // Find maximum component of face normal
+                var maxComp;
+                if(absNor.x > absNor.y && absNor.x > absNor.z) {
+                  maxComp = 0;
+                }
+                else if(absNor.y > absNor.x && absNor.y > absNor.z) {
+                  maxComp = 1;
+                }
+                else {
+                  maxComp = 2;
+                }
+                if ( isShiftDown ) {
+                    scene.remove(intersect.object);
+                    world.grid[gridPos.x][gridPos.y][gridPos.z] = 0;
+                    blocks.splice( blocks.indexOf( intersect.object ), 1 );
+                }
+                else {
+                  // Update world.grid if click is within world bounds
+                  switch(maxComp) {
+                    case 0:
+                      var xnew = gridPos.x + nor.x;
+                      console.log("trying to place " + xnew + "," + gridPos.y + "," + gridPos.z);
+                      if(gridPos.x + nor.x < dim.x && gridPos.x + nor.x >= 0) {
+                        world.grid[gridPos.x+nor.x][gridPos.y][gridPos.z] = 1;
+                        scene.add( voxel );
+                        blocks.push( voxel );
+                        console.log("placed " + xnew + "," + gridPos.y + "," + gridPos.z);
+                      }
+                      break;
+                    case 1:
+                      var ynew = gridPos.y + nor.y;
+                      console.log("trying to place " + gridPos.x + "," + ynew + "," + gridPos.z);
+                      if(gridPos.y + nor.y < dim.y && gridPos.y + nor.y >= 0) {
+                        world.grid[gridPos.x][gridPos.y+nor.y][gridPos.z] = 1;
+                        scene.add( voxel );
+                        blocks.push( voxel );
+                        console.log("placed " + gridPos.x + "," + ynew + "," + gridPos.z);
+                      }
+                      break;
+                    case 2:
+                      var znew = gridPos.z + nor.z;
+                      console.log("trying to place " + gridPos.x + "," + gridPos.y + "," + znew);
+                      if(gridPos.z + nor.z < dim.z && gridPos.z + nor.z >= 0) {
+                        world.grid[gridPos.x][gridPos.y][gridPos.z+nor.z] = 1;
+                        scene.add( voxel );
+                        blocks.push( voxel );
+                        console.log("placed " + gridPos.x + "," + gridPos.y + "," + znew);
+                      }
+                      break;
+                  }
+                }
+              }
+              render();
+            }
+
+            function onDocumentKeyDown(event) {
+              switch( event.keyCode ) {
+                case 16: isShiftDown = true;
+                break;
               }
             }
 
-            // Create a light, set its position, and add it to the scene.
-            var light = new THREE.PointLight(0xffffff);
-            light.position.set(12,20,8);
-            scene.add(light);
-            var ambient = new THREE.AmbientLight( 0x0a84ff, 0.5 );
-				    scene.add(ambient);
-
-            renderer.render(scene,camera);
-            controls.update();
-
-            var animate = function() {
-              requestAnimationFrame(animate);
-              render();
+            function onDocumentKeyUp(event) {
+              switch ( event.keyCode ) {
+                case 16: isShiftDown = false;
+                break;
+              }
             }
 
             function render() {
 				      renderer.render( scene, camera );
             }
 
-            function onDocumentMouseDown( event ) {
-              event.preventDefault();
-      				mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1 );
-              raycaster.setFromCamera( mouse, camera );
-              var intersects = raycaster.intersectObjects(blocks);
-              if(intersects.length > 0)
-              {
-                var intersect = intersects[0];
-                var worldPos = intersect.object.position;
-                var gridPos = new THREE.Vector3(worldPos.x+(dim.x-1)/2,worldPos.y+(dim.y-1)/2,worldPos.z+(dim.z-1)/2);
-                gridPos.sub(new THREE.Vector3(1,1,1));
-                var nor = intersect.face.normal.normalize();
-
-                var voxel = new THREE.Mesh(geometry, lambertGreen);
-                voxel.position.copy(worldPos).add(nor);
-
-                // Find maximum component of face normal
-                var maxComp;
-                if(nor.x > nor.y && nor.x > nor.z) maxComp = 0;
-                else if(nor.y > nor.x && nor.y > nor.z) maxComp = 1;
-                else maxComp = 2;
-                // Update world.grid if click is within world bounds
-                switch(maxComp) {
-                  case 0:
-                    if(gridPos.x + nor.x <= dim.x && gridPos.x + nor.x > 0) {
-                      world.grid[gridPos.x+nor.x][gridPos.y][gridPos.z] = 1;
-                    }
-                    break;
-                  case 1:
-                    if(gridPos.y + nor.y <= dim.y && gridPos.y + nor.y > 0) {
-                      world.grid[gridPos.x][gridPos.y+nor.y][gridPos.z] = 1;
-                    }
-                    break;
-                  case 2:
-                    if(gridPos.z + nor.z <= dim.z && gridPos.z + nor.z > 0) {
-                      world.grid[gridPos.x][gridPos.y][gridPos.z+nor.z] = 1;
-                    }
-                    break;
-                }
-                scene.add( voxel );
-                blocks.push( voxel );
-              }
+            function animate() {
+              requestAnimationFrame(animate);
               render();
             }
 
-           animate();
+            animate();
+            controls.update();
           </script>
         </body>
 </html>
