@@ -60,10 +60,10 @@
                     aspectRatio = WIDTH / HEIGHT;
 
                 renderer.setSize(WIDTH, HEIGHT);
-                camera.left = -aspectRatio * viewSize / 2;
-                camera.right = aspectRatio * viewSize / 2;
-                camera.top = viewSize / 2;
-                camera.bottom = -viewSize / 2;
+                // camera.left = -aspectRatio * viewSize / 2;
+                // camera.right = aspectRatio * viewSize / 2;
+                // camera.top = viewSize / 2;
+                // camera.bottom = -viewSize / 2;
                 camera.updateProjectionMatrix();
               });
 
@@ -125,7 +125,7 @@
               event.preventDefault();
               mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1 );
               raycaster.setFromCamera( mouse, camera );
-              var intersects = raycaster.intersectObjects( scene.children );
+              var intersects = raycaster.intersectObjects(blocks);
               if ( intersects.length > 0 ) {
                 var intersect = intersects[ 0 ];
                 var worldPos = intersect.object.position;
@@ -141,7 +141,7 @@
               event.preventDefault();
       				mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1 );
               raycaster.setFromCamera( mouse, camera );
-              var intersects = raycaster.intersectObjects(scene.children);
+              var intersects = raycaster.intersectObjects(blocks);
               if(intersects.length > 0)
               {
                 var intersect = intersects[0];
