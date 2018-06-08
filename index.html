@@ -37,7 +37,7 @@
               //camera = new THREE.OrthographicCamera(-aspectRatio * viewSize / 2, aspectRatio * viewSize / 2, viewSize / 2, -viewSize / 2, -600, 600);
               camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
               scene.add(camera);
-              camera.position.set(-1, 1, -0.5);
+              camera.position.set(-8, 8, -4);
 
               // Create a renderer and add it to the DOM.
               renderer = new THREE.WebGLRenderer({antialias:true});
@@ -60,6 +60,7 @@
                     aspectRatio = WIDTH / HEIGHT;
 
                 renderer.setSize(WIDTH, HEIGHT);
+                camera.aspect = window.innerWidth / window.innerHeight;
                 // camera.left = -aspectRatio * viewSize / 2;
                 // camera.right = aspectRatio * viewSize / 2;
                 // camera.top = viewSize / 2;
@@ -84,8 +85,8 @@
               scene.add(alight);
 
               // Add rollover geometry to the scene
-              targetGeo = new THREE.BoxGeometry(1, 1, 1);
-              targetMat = new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.5, transparent: true } );
+              targetGeo = new THREE.PlaneGeometry(1, 1);
+              targetMat = new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.5, transparent: true, side: THREE.DoubleSide } );
               targetMesh = new THREE.Mesh(targetGeo, targetMat);
               scene.add(targetMesh);
 
@@ -131,8 +132,22 @@
                 var worldPos = intersect.object.position;
                 var gridPos = new THREE.Vector3(worldPos.x+(dim.x-1)/2,worldPos.y+(dim.y-1)/2,worldPos.z+(dim.z-1)/2);
                 var nor = intersect.face.normal;
-                targetMesh.position.copy( worldPos );
-                //targetMesh.position.divideScalar( 1 ).floor().multiplyScalar( 1 ).addScalar( .5 );
+                targetMesh.position.copy(worldPos);
+                var maxComp = getMaxComp(nor);
+                switch(maxComp) {
+                  case 0:
+                    targetMesh.rotation.set(0, Math.PI/2, 0);
+                    targetMesh.position.x += nor.x / 1.9999;
+                    break;
+                  case 1:
+                    targetMesh.rotation.set(Math.PI/2, 0, 0);
+                    targetMesh.position.y += nor.y / 1.9999;
+                    break;
+                  case 2:
+                    targetMesh.rotation.set(0, 0, Math.PI/2);
+                    targetMesh.position.z += nor.z / 1.9999;
+                    break;
+                }
               }
               render();
             }
@@ -148,25 +163,13 @@
                 var worldPos = intersect.object.position;
                 var gridPos = new THREE.Vector3(worldPos.x+(dim.x-1)/2,worldPos.y+(dim.y-1)/2,worldPos.z+(dim.z-1)/2);
                 var nor = intersect.face.normal;
-                var absNor = new THREE.Vector3(Math.abs(nor.x), Math.abs(nor.y), Math.abs(nor.z));
 
                 var voxel = new THREE.Mesh(cubeGeo, cubeMat);
                 voxel.position.copy(worldPos).add(nor);
 
-                console.log("clicked on " + gridPos.x + "," + gridPos.y + "," + gridPos.z);
-                console.log("normal = " + nor.x + "," + nor.y + "," + nor.z);
-
                 // Find maximum component of face normal
-                var maxComp;
-                if(absNor.x > absNor.y && absNor.x > absNor.z) {
-                  maxComp = 0;
-                }
-                else if(absNor.y > absNor.x && absNor.y > absNor.z) {
-                  maxComp = 1;
-                }
-                else {
-                  maxComp = 2;
-                }
+                var maxComp = getMaxComp(nor);
+
                 if ( isShiftDown ) {
                     scene.remove(intersect.object);
                     world.grid[gridPos.x][gridPos.y][gridPos.z] = 0;
@@ -177,32 +180,26 @@
                   switch(maxComp) {
                     case 0:
                       var xnew = gridPos.x + nor.x;
-                      console.log("trying to place " + xnew + "," + gridPos.y + "," + gridPos.z);
                       if(gridPos.x + nor.x < dim.x && gridPos.x + nor.x >= 0) {
                         world.grid[gridPos.x+nor.x][gridPos.y][gridPos.z] = 1;
                         scene.add( voxel );
                         blocks.push( voxel );
-                        console.log("placed " + xnew + "," + gridPos.y + "," + gridPos.z);
                       }
                       break;
                     case 1:
                       var ynew = gridPos.y + nor.y;
-                      console.log("trying to place " + gridPos.x + "," + ynew + "," + gridPos.z);
                       if(gridPos.y + nor.y < dim.y && gridPos.y + nor.y >= 0) {
                         world.grid[gridPos.x][gridPos.y+nor.y][gridPos.z] = 1;
                         scene.add( voxel );
                         blocks.push( voxel );
-                        console.log("placed " + gridPos.x + "," + ynew + "," + gridPos.z);
                       }
                       break;
                     case 2:
                       var znew = gridPos.z + nor.z;
-                      console.log("trying to place " + gridPos.x + "," + gridPos.y + "," + znew);
                       if(gridPos.z + nor.z < dim.z && gridPos.z + nor.z >= 0) {
                         world.grid[gridPos.x][gridPos.y][gridPos.z+nor.z] = 1;
                         scene.add( voxel );
                         blocks.push( voxel );
-                        console.log("placed " + gridPos.x + "," + gridPos.y + "," + znew);
                       }
                       break;
                   }
@@ -223,6 +220,18 @@
                 case 16: isShiftDown = false;
                 break;
               }
+            }
+
+            // Helper function for dealing with surface normals
+            function getMaxComp(vec3) {
+              var absVec = new THREE.Vector3(Math.abs(vec3.x), Math.abs(vec3.y), Math.abs(vec3.z));
+              if(absVec.x > absVec.y && absVec.x > absVec.z) {
+                  return 0;
+                }
+                else if(absVec.y > absVec.x && absVec.y > absVec.z) {
+                  return 1;
+                }
+                return 2;
             }
 
             function render() {
