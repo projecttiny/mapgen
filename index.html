@@ -200,11 +200,13 @@
                 // Find maximum component of face normal
                 var maxComp = getMaxComp(nor);
 
-                if (isShiftDown && gridPos.y >= 0) {
+                if(isShiftDown){
+                  if(gridPos.y >= 0) {
                     scene.remove(intersect.object);
                     world.grid[gridPos.x][gridPos.y][gridPos.z] = 0;
                     solids.splice(solids.indexOf(intersect.object), 1);
                     updateTarget();
+                  }
                 }
                 else {
                   // Update world.grid if click is within world bounds
