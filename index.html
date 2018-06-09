@@ -76,15 +76,18 @@
               renderer.setClearColor(clearColor, 1);
 
               // Set up cube attributes
-              cubeMat = new THREE.MeshBasicMaterial( { vertexColors: THREE.FaceColors } );
+              cubeMat = new THREE.MeshLambertMaterial( { color: 0xffffff } );
               cubeGeo = new THREE.BoxGeometry(1, 1, 1);
               cubeGeo.computeFaceNormals();
 
               // Add lights to the scene
-              plight = new THREE.PointLight(0xffffff);
+              plight = new THREE.DirectionalLight(0xffffff, 1, 100);
               plight.position.set(12,20,8);
+              slight = new THREE.DirectionalLight(0xffffff, .25, 100);
+              slight.position.set(-4,20,-16);
               scene.add(plight);
-              alight = new THREE.AmbientLight( 0x0a84ff, 0.5 );
+              scene.add(slight);
+              alight = new THREE.AmbientLight( 0xffffff, 0.25 );
               scene.add(alight);
 
               // Add rollover geometry to the scene
@@ -97,6 +100,9 @@
               loadWorld(dim);
               loadGround(dim);
               container.position.y += groundDepth/2;
+              container.position.x -= dim.x/2 - 0.5;
+              container.position.y -= dim.y/2 - 0.5;
+              container.position.z -= dim.z/2 - 0.5;
               scene.add(container);
             }
 
@@ -108,16 +114,7 @@
                   for(var z = 0; z < world.z; z++) {
                     if(world.grid[x][y][z] == 1) {
                       cube = new THREE.Mesh(cubeGeo, cubeMat);
-                      cube.position.set(x - (dim.x - 1)/2, y - (dim.y - 1)/2, z - (dim.z - 1)/2);
-                      cube.material.vertexColors = THREE.FaceColors;
-                      cube.geometry.faces[0].color.setRGB(.7, 0, 0);
-                      cube.geometry.faces[1].color.setRGB(.7, 0, 0);
-                      cube.geometry.faces[2].color.setRGB(0, .7, 0)
-                      cube.geometry.faces[3].color.setRGB(0, .7, 0);
-                      cube.geometry.faces[8].color.setRGB(1, .4, 0);
-                      cube.geometry.faces[9].color.setRGB(1, .4, 0);
-                      cube.geometry.faces[10].color.setRGB(0, .1, .7);
-                      cube.geometry.faces[11].color.setRGB(0, .1, .7);
+                      cube.position.set(x,y,z);
                       container.add(cube);
                       solids.push(cube);
                     }
@@ -127,12 +124,12 @@
             }
 
             function loadGround(dim) {
-              var y = -dim.y/2 - groundDepth/2;
+              var y = -0.5 - groundDepth/2;
               for(var x = 0; x < world.x; x++) {
                 for(var z = 0; z < world.z; z++) {
                   cube = new THREE.Mesh(cubeGeo, cubeMat);
                   cube.scale.y = .5;
-                  cube.position.set(x - (dim.x - 1) / 2, y, z - (dim.z - 1) / 2);
+                  cube.position.set(x,y,z);// - (dim.x - 1) / 2, y, z - (dim.z - 1) / 2);
                   container.add(cube);
                   solids.push(cube);
                 }
@@ -142,73 +139,68 @@
             function onDocumentMouseMove(event) {
               event.preventDefault();
               mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
-              updateTarget();
               render();
+              updateTarget();
             }
 
             function onDocumentMouseDown(event) {
               event.preventDefault();
       				mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
-              raycaster.setFromCamera(mouse, camera);
               var intersects = raycaster.intersectObjects(solids);
               if(intersects.length > 0)
               {
                 var intersect = intersects[0];
-                var worldPos = intersect.object.position;
-                var gridPos = new THREE.Vector3(worldPos.x+(dim.x-1)/2,worldPos.y+(dim.y-1)/2,worldPos.z+(dim.z-1)/2);
+                var pos = intersect.object.position;
                 var nor = intersect.face.normal;
 
                 var voxel = new THREE.Mesh(cubeGeo, cubeMat);
-                voxel.position.copy(worldPos).add(nor);
+                voxel.position.copy(pos).add(nor);
 
                 // Find maximum component of face normal
                 var maxComp = getMaxComp(nor);
 
                 if(isShiftDown){
-                  if(gridPos.y >= 0) {
+                  if(pos.y >= 0) {
                     container.remove(intersect.object);
-                    world.grid[gridPos.x][gridPos.y][gridPos.z] = 0;
+                    world.grid[pos.x][pos.y][pos.z] = 0;
                     solids.splice(solids.indexOf(intersect.object), 1);
-                    updateTarget();
                   }
                 }
                 else {
                   // Update world.grid if click is within world bounds
                   switch(maxComp) {
                     case 0:
-                      var xnew = gridPos.x + nor.x;
-                      if(gridPos.x + nor.x < dim.x && gridPos.x + nor.x >= 0) {
-                        world.grid[gridPos.x+nor.x][gridPos.y][gridPos.z] = 1;
+                      if(pos.x + nor.x < dim.x && pos.x + nor.x >= 0) {
+                        world.grid[pos.x+nor.x][pos.y][pos.z] = 1;
                         container.add(voxel);
                         solids.push(voxel);
                       }
                       break;
                     case 1:
-                      if(gridPos.y < 0 && nor.y > 0) { // Place block on ground
-                        world.grid[gridPos.x][0][gridPos.z] = 1;
+                      if(pos.y < 0 && nor.y > 0) { // Place block on ground
+                        world.grid[pos.x][0][pos.z] = 1;
                         voxel.position.y -= 0.25;
                         container.add(voxel);
                         solids.push(voxel);
                       }
-                      else if (gridPos.y + nor.y < dim.y && gridPos.y + nor.y >= 0) {
-                        var ynew = gridPos.y + nor.y;
-                        world.grid[gridPos.x][gridPos.y+nor.y][gridPos.z] = 1;
-                        container.add(voxel );
-                        solids.push(voxel );
+                      else if (pos.y + nor.y < dim.y && pos.y + nor.y >= 0) {
+                        world.grid[pos.x][pos.y+nor.y][pos.z] = 1;
+                        container.add(voxel);
+                        solids.push(voxel);
                       }
                       break;
                     case 2:
-                      var znew = gridPos.z + nor.z;
-                      if(gridPos.z + nor.z < dim.z && gridPos.z + nor.z >= 0) {
-                        world.grid[gridPos.x][gridPos.y][gridPos.z+nor.z] = 1;
-                        container.add( voxel );
-                        solids.push( voxel );
+                      if(pos.z + nor.z < dim.z && pos.z + nor.z >= 0) {
+                        world.grid[pos.x][pos.y][pos.z+nor.z] = 1;
+                        container.add(voxel);
+                        solids.push(voxel);
                       }
                       break;
                   }
                 }
               }
               render();
+              updateTarget();
             }
 
             function onDocumentKeyDown(event) {
@@ -237,20 +229,20 @@
                 return 2;
             }
 
+            // Updates the location of the target square
             function updateTarget() {
               raycaster.setFromCamera(mouse, camera);
               var intersects = raycaster.intersectObjects(solids);
               if (intersects.length > 0) {
                 targetMesh.visible = true;
                 var intersect = intersects[0];
-                var worldPos = intersect.object.position;
-                var gridPos = new THREE.Vector3(worldPos.x+(dim.x-1)/2,worldPos.y+(dim.y-1)/2,worldPos.z+(dim.z-1)/2);
+                var pos = intersect.object.position;
                 var nor = intersect.face.normal;
-                targetMesh.position.copy(worldPos);
+                targetMesh.position.copy(pos);
                 var maxComp = getMaxComp(nor);
 
                 // Check if selection is on the ground
-                if(gridPos.y < 0) {
+                if(pos.y < 0) {
                   if(nor.y <= 0) {
                     targetMesh.visible = false;
                   }
