@@ -12,7 +12,8 @@
           <script src="js/controls/OrbitControls.js"></script>
           <script src="js/src/WorldGrid.js"></script>
           <script>
-            var camera, scene, renderer, world, dim;
+            var camera, scene, container, renderer;
+            var world, dim, groundDepth;
             var plight, alight, cube;
 
             var mouse, controls, raycaster;
@@ -28,6 +29,7 @@
 
             function init() {
               scene = new THREE.Scene();
+              container = new THREE.Group();
               dim = new THREE.Vector3(4,6,4);
 
               var viewSize = 12;
@@ -37,7 +39,7 @@
               //camera = new THREE.OrthographicCamera(-aspectRatio * viewSize / 2, aspectRatio * viewSize / 2, viewSize / 2, -viewSize / 2, -600, 600);
               camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
               scene.add(camera);
-              camera.position.set(-8, 8, -4);
+              camera.position.set(-12, 8, -6);
 
               // Create a renderer and add it to the DOM.
               renderer = new THREE.WebGLRenderer({antialias:true});
@@ -61,6 +63,7 @@
 
                 renderer.setSize(WIDTH, HEIGHT);
                 camera.aspect = window.innerWidth / window.innerHeight;
+                /* Commented out code used for othographic camera */
                 // camera.left = -aspectRatio * viewSize / 2;
                 // camera.right = aspectRatio * viewSize / 2;
                 // camera.top = viewSize / 2;
@@ -88,10 +91,13 @@
               targetGeo = new THREE.PlaneGeometry(1, 1);
               targetMat = new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.5, transparent: true, side: THREE.DoubleSide } );
               targetMesh = new THREE.Mesh(targetGeo, targetMat);
-              scene.add(targetMesh);
+              container.add(targetMesh);
 
+              groundDepth = 0.5;
               loadWorld(dim);
               loadGround(dim);
+              container.position.y += groundDepth/2;
+              scene.add(container);
             }
 
             function loadWorld(dim) {
@@ -102,7 +108,7 @@
                   for(var z = 0; z < world.z; z++) {
                     if(world.grid[x][y][z] == 1) {
                       cube = new THREE.Mesh(cubeGeo, cubeMat);
-                      cube.position.set(x - (dim.x - 1) / 2, y - (dim.y - 1) / 2, z - (dim.z - 1) / 2);
+                      cube.position.set(x - (dim.x - 1)/2, y - (dim.y - 1)/2, z - (dim.z - 1)/2);
                       cube.material.vertexColors = THREE.FaceColors;
                       cube.geometry.faces[0].color.setRGB(.7, 0, 0);
                       cube.geometry.faces[1].color.setRGB(.7, 0, 0);
@@ -112,7 +118,7 @@
                       cube.geometry.faces[9].color.setRGB(1, .4, 0);
                       cube.geometry.faces[10].color.setRGB(0, .1, .7);
                       cube.geometry.faces[11].color.setRGB(0, .1, .7);
-                      scene.add(cube);
+                      container.add(cube);
                       solids.push(cube);
                     }
                   }
@@ -121,13 +127,13 @@
             }
 
             function loadGround(dim) {
-              var y = -dim.y/2 - 0.25;
+              var y = -dim.y/2 - groundDepth/2;
               for(var x = 0; x < world.x; x++) {
                 for(var z = 0; z < world.z; z++) {
                   cube = new THREE.Mesh(cubeGeo, cubeMat);
                   cube.scale.y = .5;
                   cube.position.set(x - (dim.x - 1) / 2, y, z - (dim.z - 1) / 2);
-                  scene.add(cube);
+                  container.add(cube);
                   solids.push(cube);
                 }
               }
@@ -135,9 +141,100 @@
 
             function onDocumentMouseMove(event) {
               event.preventDefault();
-              mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1 );
+              mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
               updateTarget();
               render();
+            }
+
+            function onDocumentMouseDown(event) {
+              event.preventDefault();
+      				mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
+              raycaster.setFromCamera(mouse, camera);
+              var intersects = raycaster.intersectObjects(solids);
+              if(intersects.length > 0)
+              {
+                var intersect = intersects[0];
+                var worldPos = intersect.object.position;
+                var gridPos = new THREE.Vector3(worldPos.x+(dim.x-1)/2,worldPos.y+(dim.y-1)/2,worldPos.z+(dim.z-1)/2);
+                var nor = intersect.face.normal;
+
+                var voxel = new THREE.Mesh(cubeGeo, cubeMat);
+                voxel.position.copy(worldPos).add(nor);
+
+                // Find maximum component of face normal
+                var maxComp = getMaxComp(nor);
+
+                if(isShiftDown){
+                  if(gridPos.y >= 0) {
+                    container.remove(intersect.object);
+                    world.grid[gridPos.x][gridPos.y][gridPos.z] = 0;
+                    solids.splice(solids.indexOf(intersect.object), 1);
+                    updateTarget();
+                  }
+                }
+                else {
+                  // Update world.grid if click is within world bounds
+                  switch(maxComp) {
+                    case 0:
+                      var xnew = gridPos.x + nor.x;
+                      if(gridPos.x + nor.x < dim.x && gridPos.x + nor.x >= 0) {
+                        world.grid[gridPos.x+nor.x][gridPos.y][gridPos.z] = 1;
+                        container.add(voxel);
+                        solids.push(voxel);
+                      }
+                      break;
+                    case 1:
+                      if(gridPos.y < 0 && nor.y > 0) { // Place block on ground
+                        world.grid[gridPos.x][0][gridPos.z] = 1;
+                        voxel.position.y -= 0.25;
+                        container.add(voxel);
+                        solids.push(voxel);
+                      }
+                      else if (gridPos.y + nor.y < dim.y && gridPos.y + nor.y >= 0) {
+                        var ynew = gridPos.y + nor.y;
+                        world.grid[gridPos.x][gridPos.y+nor.y][gridPos.z] = 1;
+                        container.add(voxel );
+                        solids.push(voxel );
+                      }
+                      break;
+                    case 2:
+                      var znew = gridPos.z + nor.z;
+                      if(gridPos.z + nor.z < dim.z && gridPos.z + nor.z >= 0) {
+                        world.grid[gridPos.x][gridPos.y][gridPos.z+nor.z] = 1;
+                        container.add( voxel );
+                        solids.push( voxel );
+                      }
+                      break;
+                  }
+                }
+              }
+              render();
+            }
+
+            function onDocumentKeyDown(event) {
+              switch( event.keyCode ) {
+                case 16: isShiftDown = true;
+                break;
+              }
+            }
+
+            function onDocumentKeyUp(event) {
+              switch ( event.keyCode ) {
+                case 16: isShiftDown = false;
+                break;
+              }
+            }
+
+            // Helper function for dealing with surface normals
+            function getMaxComp(vec3) {
+              var absVec = new THREE.Vector3(Math.abs(vec3.x), Math.abs(vec3.y), Math.abs(vec3.z));
+              if(absVec.x > absVec.y && absVec.x > absVec.z) {
+                  return 0;
+                }
+                else if(absVec.y > absVec.x && absVec.y > absVec.z) {
+                  return 1;
+                }
+                return 2;
             }
 
             function updateTarget() {
@@ -180,97 +277,6 @@
               else {
                 targetMesh.visible = false;
               }
-            }
-
-            function onDocumentMouseDown(event) {
-              event.preventDefault();
-      				mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1 );
-              raycaster.setFromCamera(mouse, camera);
-              var intersects = raycaster.intersectObjects(solids);
-              if(intersects.length > 0)
-              {
-                var intersect = intersects[0];
-                var worldPos = intersect.object.position;
-                var gridPos = new THREE.Vector3(worldPos.x+(dim.x-1)/2,worldPos.y+(dim.y-1)/2,worldPos.z+(dim.z-1)/2);
-                var nor = intersect.face.normal;
-
-                var voxel = new THREE.Mesh(cubeGeo, cubeMat);
-                voxel.position.copy(worldPos).add(nor);
-
-                // Find maximum component of face normal
-                var maxComp = getMaxComp(nor);
-
-                if(isShiftDown){
-                  if(gridPos.y >= 0) {
-                    scene.remove(intersect.object);
-                    world.grid[gridPos.x][gridPos.y][gridPos.z] = 0;
-                    solids.splice(solids.indexOf(intersect.object), 1);
-                    updateTarget();
-                  }
-                }
-                else {
-                  // Update world.grid if click is within world bounds
-                  switch(maxComp) {
-                    case 0:
-                      var xnew = gridPos.x + nor.x;
-                      if(gridPos.x + nor.x < dim.x && gridPos.x + nor.x >= 0) {
-                        world.grid[gridPos.x+nor.x][gridPos.y][gridPos.z] = 1;
-                        scene.add(voxel);
-                        solids.push(voxel);
-                      }
-                      break;
-                    case 1:
-                      if(gridPos.y < 0 && nor.y > 0) { // Place block on ground
-                        world.grid[gridPos.x][0][gridPos.z] = 1;
-                        voxel.position.y -= 0.25;
-                        scene.add(voxel);
-                        solids.push(voxel);
-                      }
-                      else if (gridPos.y + nor.y < dim.y && gridPos.y + nor.y >= 0) {
-                        var ynew = gridPos.y + nor.y;
-                        world.grid[gridPos.x][gridPos.y+nor.y][gridPos.z] = 1;
-                        scene.add(voxel );
-                        solids.push(voxel );
-                      }
-                      break;
-                    case 2:
-                      var znew = gridPos.z + nor.z;
-                      if(gridPos.z + nor.z < dim.z && gridPos.z + nor.z >= 0) {
-                        world.grid[gridPos.x][gridPos.y][gridPos.z+nor.z] = 1;
-                        scene.add( voxel );
-                        solids.push( voxel );
-                      }
-                      break;
-                  }
-                }
-              }
-              render();
-            }
-
-            function onDocumentKeyDown(event) {
-              switch( event.keyCode ) {
-                case 16: isShiftDown = true;
-                break;
-              }
-            }
-
-            function onDocumentKeyUp(event) {
-              switch ( event.keyCode ) {
-                case 16: isShiftDown = false;
-                break;
-              }
-            }
-
-            // Helper function for dealing with surface normals
-            function getMaxComp(vec3) {
-              var absVec = new THREE.Vector3(Math.abs(vec3.x), Math.abs(vec3.y), Math.abs(vec3.z));
-              if(absVec.x > absVec.y && absVec.x > absVec.z) {
-                  return 0;
-                }
-                else if(absVec.y > absVec.x && absVec.y > absVec.z) {
-                  return 1;
-                }
-                return 2;
             }
 
             function render() {
