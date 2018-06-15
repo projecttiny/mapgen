@@ -10,6 +10,7 @@
         <body>
           <script src="js/build/three.js"></script>
           <script src="js/controls/OrbitControls.js"></script>
+          <script src="js/loaders/OBJLoader.js"></script>
           <script src="js/src/WorldGrid.js"></script>
           <script>
             var camera, scene, container, renderer;
@@ -20,9 +21,12 @@
             var isShiftDown = false;
 
             var targetGeo, targetMat, targetMesh;
-            var cubeGeo, cubeMat;
+            var gridGeo, gridMat, groundMat;
+            var lambertMat;
 
-            var solids = [];
+            var objLoader;
+
+            var voxels = [], tiles = [];
 
             init();
             render();
@@ -76,9 +80,13 @@
               renderer.setClearColor(clearColor, 1);
 
               // Set up cube attributes
-              cubeMat = new THREE.MeshLambertMaterial( { color: 0xffffff } );
-              cubeGeo = new THREE.BoxGeometry(1, 1, 1);
-              cubeGeo.computeFaceNormals();
+              gridMat = new THREE.MeshBasicMaterial( { color: 0xffffff } );
+              gridMat.visible = false;
+              gridGeo = new THREE.BoxGeometry(1, 1, 1);
+              gridGeo.computeFaceNormals();
+
+              groundMat = new THREE.MeshLambertMaterial( {color:0x503412} );
+              lambertMat = new THREE.MeshLambertMaterial( {color:0xffffff} );
 
               // Add lights to the scene
               plight = new THREE.DirectionalLight(0xffffff, 1, 100);
@@ -87,23 +95,42 @@
               slight.position.set(-4,20,-16);
               scene.add(plight);
               scene.add(slight);
-              alight = new THREE.AmbientLight( 0xffffff, 0.25 );
+              alight = new THREE.AmbientLight( 0xffffff, 0.35 );
               scene.add(alight);
 
               // Add rollover geometry to the scene
               targetGeo = new THREE.PlaneGeometry(1, 1);
               targetMat = new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.5, transparent: true, side: THREE.DoubleSide } );
               targetMesh = new THREE.Mesh(targetGeo, targetMat);
+              targetMesh.visible = false;
               container.add(targetMesh);
 
+              loadObjs();
               groundDepth = 0.5;
-              loadWorld(dim);
-              loadGround(dim);
+              setTimeout(loadWorld, 10, dim);
+              setTimeout(loadGround, 100);
               container.position.y += groundDepth/2;
               container.position.x -= dim.x/2 - 0.5;
               container.position.y -= dim.y/2 - 0.5;
               container.position.z -= dim.z/2 - 0.5;
               scene.add(container);
+
+            }
+
+            function loadObjs() {
+              objLoader = new THREE.OBJLoader();
+              objLoader.load('obj/cube.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
+                  tiles[0] = object;
+                }
+              );
+              objLoader.load('obj/roof.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
+                  tiles[1] = object;
+                }
+              );
             }
 
             function loadWorld(dim) {
@@ -113,25 +140,50 @@
                 for(var y = 0; y < world.y; y++) {
                   for(var z = 0; z < world.z; z++) {
                     if(world.grid[x][y][z] == 1) {
-                      cube = new THREE.Mesh(cubeGeo, cubeMat);
+                      cube = new THREE.Mesh(gridGeo, gridMat);
                       cube.position.set(x,y,z);
                       container.add(cube);
-                      solids.push(cube);
+                      voxels.push(cube);
                     }
                   }
                 }
               }
             }
 
-            function loadGround(dim) {
+            function loadGround() {
               var y = -0.5 - groundDepth/2;
               for(var x = 0; x < world.x; x++) {
                 for(var z = 0; z < world.z; z++) {
-                  cube = new THREE.Mesh(cubeGeo, cubeMat);
+                  cube = new THREE.Mesh(gridGeo, groundMat);
                   cube.scale.y = .5;
-                  cube.position.set(x,y,z);// - (dim.x - 1) / 2, y, z - (dim.z - 1) / 2);
+                  cube.position.set(x,y,z);
                   container.add(cube);
-                  solids.push(cube);
+                  voxels.push(cube);
+                }
+              }
+            }
+
+            function updateNeighbors(tilePos) {
+              // Update surrounding tiles
+              var xmin = Math.max(tilePos.x - 1, 0), xmax = Math.min(tilePos.x + 1, world.x - 1);
+              var ymin = Math.max(tilePos.y - 1, 0), ymax = Math.min(tilePos.y + 1, world.y - 1);
+              var zmin = Math.max(tilePos.z - 1, 0), zmax = Math.min(tilePos.z + 1, world.z - 1);
+              for(var x = xmin; x <= xmax; x++) {
+                for(var y = ymin; y <= ymax; y++) {
+                  for(var z = zmin; z <= zmax; z++) {
+                    if(world.grid[x][y][z] != 0 && world.getBlockType(x, y, z) != world.types[x][y][z]) {
+                      var checkPos = new THREE.Vector3(x, y, z);
+                      // Remove outdated tile
+                      container.remove(container.getObjectByName(checkPos.toArray().toString().concat("t")));
+                      // Add updated tile
+                      var newTile = tiles[world.getBlockType(x,y,z)].clone();
+                      newTile.position.copy(checkPos);
+                      newTile.name = checkPos.toArray().toString().concat("t");
+                      container.add(newTile);
+                      // Update world data
+                      world.types[x][y][z] = world.getBlockType(x,y,z);
+                    }
+                  }
                 }
               }
             }
@@ -146,56 +198,67 @@
             function onDocumentMouseDown(event) {
               event.preventDefault();
       				mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
-              var intersects = raycaster.intersectObjects(solids);
+              var intersects = raycaster.intersectObjects(voxels);
               if(intersects.length > 0)
               {
                 var intersect = intersects[0];
-                var pos = intersect.object.position;
+                var pos = intersect.object.position.clone();
                 var nor = intersect.face.normal;
 
-                var voxel = new THREE.Mesh(cubeGeo, cubeMat);
-                voxel.position.copy(pos).add(nor);
-
+                var voxel = new THREE.Mesh(gridGeo, gridMat);
                 // Find maximum component of face normal
                 var maxComp = getMaxComp(nor);
 
                 if(isShiftDown){
-                  if(pos.y >= 0) {
-                    container.remove(intersect.object);
-                    world.grid[pos.x][pos.y][pos.z] = 0;
-                    solids.splice(solids.indexOf(intersect.object), 1);
-                  }
+                  container.remove(container.getObjectByName(pos.toArray().toString().concat("t")));
+                  container.remove(container.getObjectByName(pos.toArray().toString()));
+                  world.grid[pos.x][pos.y][pos.z] = 0;
+                  voxels.splice(voxels.indexOf(intersect.object), 1);
+                  updateNeighbors(pos);
                 }
                 else {
+                  var placed = false;
+                  var tile;
                   // Update world.grid if click is within world bounds
                   switch(maxComp) {
                     case 0:
                       if(pos.x + nor.x < dim.x && pos.x + nor.x >= 0) {
-                        world.grid[pos.x+nor.x][pos.y][pos.z] = 1;
-                        container.add(voxel);
-                        solids.push(voxel);
+                        placed = true;
                       }
                       break;
                     case 1:
                       if(pos.y < 0 && nor.y > 0) { // Place block on ground
-                        world.grid[pos.x][0][pos.z] = 1;
-                        voxel.position.y -= 0.25;
-                        container.add(voxel);
-                        solids.push(voxel);
+                        pos.y -= 0.25;
+                        placed = true;
                       }
                       else if (pos.y + nor.y < dim.y && pos.y + nor.y >= 0) {
-                        world.grid[pos.x][pos.y+nor.y][pos.z] = 1;
-                        container.add(voxel);
-                        solids.push(voxel);
+                        placed = true;
                       }
                       break;
                     case 2:
                       if(pos.z + nor.z < dim.z && pos.z + nor.z >= 0) {
-                        world.grid[pos.x][pos.y][pos.z+nor.z] = 1;
-                        container.add(voxel);
-                        solids.push(voxel);
+                        placed = true;
                       }
                       break;
+                  }
+                  if(placed) {
+                    var tilePos = new THREE.Vector3(pos.x + nor.x, pos.y + nor.y, pos.z + nor.z);
+                    var tileType = world.getBlockType(tilePos.x, tilePos.y, tilePos.z);
+                    // Update world data
+                    world.grid[tilePos.x][tilePos.y][tilePos.z] = 1;
+                    world.types[tilePos.x][tilePos.y][tilePos.z] = tileType;
+                    // Place voxel
+                    voxel.position.copy(pos).add(nor);
+                    voxel.name = tilePos.toArray().toString();
+                    container.add(voxel);
+                    voxels.push(voxel);
+                    // Place tile
+                    tile = tiles[tileType].clone();
+                    tile.position.copy(tilePos);
+                    tile.name = tilePos.toArray().toString().concat("t");
+                    container.add(tile);
+
+                    updateNeighbors(tilePos);
                   }
                 }
               }
@@ -232,7 +295,7 @@
             // Updates the location of the target square
             function updateTarget() {
               raycaster.setFromCamera(mouse, camera);
-              var intersects = raycaster.intersectObjects(solids);
+              var intersects = raycaster.intersectObjects(voxels);
               if (intersects.length > 0) {
                 targetMesh.visible = true;
                 var intersect = intersects[0];
