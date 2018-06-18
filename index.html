@@ -34,7 +34,7 @@
             function init() {
               scene = new THREE.Scene();
               container = new THREE.Group();
-              dim = new THREE.Vector3(4,6,4);
+              dim = new THREE.Vector3(5,5,5);
 
               var viewSize = 12;
               var WIDTH = window.innerWidth;
@@ -85,8 +85,8 @@
               gridGeo = new THREE.BoxGeometry(1, 1, 1);
               gridGeo.computeFaceNormals();
 
-              groundMat = new THREE.MeshLambertMaterial( {color:0x503412} );
-              lambertMat = new THREE.MeshLambertMaterial( {color:0xffffff} );
+              groundMat = new THREE.MeshLambertMaterial( {color:0xaa7755} );
+              lambertMat = new THREE.MeshLambertMaterial( {color:0xde7766} );
 
               // Add lights to the scene
               plight = new THREE.DirectionalLight(0xffffff, 1, 100);
@@ -100,7 +100,8 @@
 
               // Add rollover geometry to the scene
               targetGeo = new THREE.PlaneGeometry(1, 1);
-              targetMat = new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.5, transparent: true, side: THREE.DoubleSide } );
+              targetMat = new THREE.MeshBasicMaterial( { color: 0xffffff, opacity: 0.25, transparent: true, side: THREE.DoubleSide } );
+              targetMat.depthTest = false;
               targetMesh = new THREE.Mesh(targetGeo, targetMat);
               targetMesh.visible = false;
               container.add(targetMesh);
@@ -119,16 +120,22 @@
 
             function loadObjs() {
               objLoader = new THREE.OBJLoader();
-              objLoader.load('obj/cube.obj',
+              objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[0] = object;
                 }
               );
-              objLoader.load('obj/roof.obj',
+              objLoader.load('obj/corner.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[1] = object;
+                }
+              );
+              objLoader.load('obj/solo.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
+                  tiles[2] = object;
                 }
               );
             }
@@ -164,24 +171,24 @@
             }
 
             function updateNeighbors(tilePos) {
-              // Update surrounding tiles
               var xmin = Math.max(tilePos.x - 1, 0), xmax = Math.min(tilePos.x + 1, world.x - 1);
               var ymin = Math.max(tilePos.y - 1, 0), ymax = Math.min(tilePos.y + 1, world.y - 1);
               var zmin = Math.max(tilePos.z - 1, 0), zmax = Math.min(tilePos.z + 1, world.z - 1);
               for(var x = xmin; x <= xmax; x++) {
                 for(var y = ymin; y <= ymax; y++) {
                   for(var z = zmin; z <= zmax; z++) {
-                    if(world.grid[x][y][z] != 0 && world.getBlockType(x, y, z) != world.types[x][y][z]) {
+                    if(world.grid[x][y][z] != 0 && world.getBlockType(x, y, z).t != world.types[x][y][z]) {
                       var checkPos = new THREE.Vector3(x, y, z);
                       // Remove outdated tile
                       container.remove(container.getObjectByName(checkPos.toArray().toString().concat("t")));
                       // Add updated tile
-                      var newTile = tiles[world.getBlockType(x,y,z)].clone();
+                      var newTile = tiles[world.getBlockType(x,y,z).t].clone();
                       newTile.position.copy(checkPos);
+                      newTile.rotation.set(0, world.getBlockType(x,y,z).rot, 0);
                       newTile.name = checkPos.toArray().toString().concat("t");
                       container.add(newTile);
                       // Update world data
-                      world.types[x][y][z] = world.getBlockType(x,y,z);
+                      world.types[x][y][z] = world.getBlockType(x,y,z).type;
                     }
                   }
                 }
@@ -243,18 +250,19 @@
                   }
                   if(placed) {
                     var tilePos = new THREE.Vector3(pos.x + nor.x, pos.y + nor.y, pos.z + nor.z);
-                    var tileType = world.getBlockType(tilePos.x, tilePos.y, tilePos.z);
+                    var tileData = world.getBlockType(tilePos.x, tilePos.y, tilePos.z);
                     // Update world data
                     world.grid[tilePos.x][tilePos.y][tilePos.z] = 1;
-                    world.types[tilePos.x][tilePos.y][tilePos.z] = tileType;
+                    world.types[tilePos.x][tilePos.y][tilePos.z] = tileData.t;
                     // Place voxel
                     voxel.position.copy(pos).add(nor);
                     voxel.name = tilePos.toArray().toString();
                     container.add(voxel);
                     voxels.push(voxel);
                     // Place tile
-                    tile = tiles[tileType].clone();
+                    tile = tiles[tileData.t].clone();
                     tile.position.copy(tilePos);
+                    tile.rotation.set(0, tileData.rot, 0);
                     tile.name = tilePos.toArray().toString().concat("t");
                     container.add(tile);
 
@@ -296,7 +304,7 @@
             function updateTarget() {
               raycaster.setFromCamera(mouse, camera);
               var intersects = raycaster.intersectObjects(voxels);
-              if (intersects.length > 0) {
+              if(intersects.length > 0) {
                 targetMesh.visible = true;
                 var intersect = intersects[0];
                 var pos = intersect.object.position;

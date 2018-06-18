@@ -5,16 +5,16 @@ class WorldGrid {
         this.z = z;
 
         this.blockType = Object.freeze({
-            ROOF: 1,
-            BLOCK: 0,
+            FLAT: 0,
+            CORNER: 1,
+            SOLO: 2,
             EMPTY: -1
         });
 
         this.styleType = Object.freeze({
-            NE: 0,
-            SE: 1,
-            SW: 2,
-            NW: 3
+            NORMAL: 0,
+            ROOF: 1,
+            FLOOR: 2,
         });
 
         this.grid = new Array();
@@ -39,12 +39,78 @@ class WorldGrid {
     }
 
     getBlockType(x, y, z) {
-        if(this.grid[x][y+1][z] == 0) {
-            return this.blockType.ROOF;
+        var type = this.blockType.EMPTY;
+        var style = this.styleType.NORMAL;
+        var neighbors = 0; // The number of adjacent neighbors
+        var rotation = 0;
+        var n = false, s = false, e = false, w = false; // Used to calculate orientation
+        // Calculate the value of n
+        if(x+1 < this.x) { // +x neighbors
+            if(this.grid[x+1][y][z] == 1) {
+                neighbors++;
+                e = true;
+            }
+        }
+        if(x-1 >= 0) {
+            if(this.grid[x-1][y][z] == 1) {
+                neighbors++;
+                w = true;
+            }
+        }
+        if(z+1 < this.z) { // +x neighbors
+            if(this.grid[x][y][z+1] == 1) {
+                neighbors++;
+                n = true;
+            }
+        }
+        if(z-1 >= 0) {
+            if(this.grid[x][y][z-1] == 1) {
+                neighbors++;
+                s = true;
+            }
+        }
+        console.log(neighbors);
+        // Determine what type of block this is
+        if(neighbors == 0) {
+            type = this.blockType.SOLO;
+        }
+        else if(neighbors == 2) {
+            type = this.blockType.CORNER;
+            if(n && e) {
+                rotation = Math.PI/2;
+            }
+            else if(s && e) {
+                rotation = Math.PI;
+            }
+            else if(s && w) {
+                rotation = 3*Math.PI/2;
+            }
+            else if(n && w) {
+                rotation = 0;
+            }
+            else {
+                type = this.blockType.FLAT;
+            }
         }
         else {
-            return this.blockType.BLOCK;
+            type = this.blockType.FLAT;
         }
+        // Determine what style of block this is
+        if(y < this.y) {
+            if(this.grid[x][y+1][z] == 0) {
+                style = this.styleType.ROOF;
+            }
+            if(y > 0 && this.grid[x][y-1][z] == 0) {
+                style = this.styleType.FLOOR;
+            }
+        }
+
+        var tile = {
+            t: type,
+            st: style,
+            rot: rotation
+        };
+        return tile;
     }
 
     getStyleType(x, y, z) {
