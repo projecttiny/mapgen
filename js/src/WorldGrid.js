@@ -13,8 +13,7 @@ class WorldGrid {
 
         this.styleType = Object.freeze({
             NORMAL: 0,
-            ROOF: 1,
-            FLOOR: 2,
+            FAT: 1
         });
 
         this.grid = new Array();
@@ -69,9 +68,8 @@ class WorldGrid {
                 s = true;
             }
         }
-        console.log(neighbors);
         // Determine what type of block this is
-        if(neighbors == 0) {
+        if(neighbors == 0 || neighbors == 1) {
             type = this.blockType.SOLO;
         }
         else if(neighbors == 2) {
@@ -96,19 +94,25 @@ class WorldGrid {
             type = this.blockType.FLAT;
         }
         // Determine what style of block this is
-        if(y < this.y) {
+        if(y < this.y - 1) {
             if(this.grid[x][y+1][z] == 0) {
-                style = this.styleType.ROOF;
+                style = this.styleType.NORMAL; // ROOF
             }
-            if(y > 0 && this.grid[x][y-1][z] == 0) {
-                style = this.styleType.FLOOR;
+            else if(this.types[x][y+1][z] == type) {
+                style = this.styleType.FAT;
             }
+            else {
+                style = this.styleType.NORMAL;
+            }
+        }
+        else {
+            style = this.styleType.NORMAL; // ROOF
         }
 
         var tile = {
-            t: type,
-            st: style,
-            rot: rotation
+            'type': type,
+            'style': style,
+            'rot': rotation
         };
         return tile;
     }

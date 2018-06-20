@@ -99,7 +99,7 @@
               scene.add(alight);
 
               // Add rollover geometry to the scene
-              targetGeo = new THREE.PlaneGeometry(1, 1);
+              targetGeo = new THREE.PlaneGeometry(.75, .75);
               targetMat = new THREE.MeshBasicMaterial( { color: 0xffffff, opacity: 0.25, transparent: true, side: THREE.DoubleSide } );
               targetMat.depthTest = false;
               targetMesh = new THREE.Mesh(targetGeo, targetMat);
@@ -119,23 +119,34 @@
             }
 
             function loadObjs() {
+              tiles[0] = new Array();
+              tiles[1] = new Array();
+              tiles[2] = new Array();
               objLoader = new THREE.OBJLoader();
               objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[0] = object;
+                  tiles[0][0] = object;
+                  tiles[0][1] = object;
                 }
               );
               objLoader.load('obj/corner.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[1] = object;
+                  tiles[1][0] = object;
+                }
+              );
+              objLoader.load('obj/cornerFat.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
+                  tiles[1][1] = object;
                 }
               );
               objLoader.load('obj/solo.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[2] = object;
+                  tiles[2][0] = object;
+                  tiles[2][1] = object;
                 }
               );
             }
@@ -170,7 +181,7 @@
               }
             }
 
-            function updateNeighbors(tilePos) {
+            function updateNeighbors(tilePos, rec) {
               var xmin = Math.max(tilePos.x - 1, 0), xmax = Math.min(tilePos.x + 1, world.x - 1);
               var ymin = Math.max(tilePos.y - 1, 0), ymax = Math.min(tilePos.y + 1, world.y - 1);
               var zmin = Math.max(tilePos.z - 1, 0), zmax = Math.min(tilePos.z + 1, world.z - 1);
@@ -182,13 +193,16 @@
                       // Remove outdated tile
                       container.remove(container.getObjectByName(checkPos.toArray().toString().concat("t")));
                       // Add updated tile
-                      var newTile = tiles[world.getBlockType(x,y,z).t].clone();
+                      var newTile = tiles[world.getBlockType(x,y,z).type][world.getBlockType(x,y,z).style].clone();
                       newTile.position.copy(checkPos);
                       newTile.rotation.set(0, world.getBlockType(x,y,z).rot, 0);
                       newTile.name = checkPos.toArray().toString().concat("t");
                       container.add(newTile);
                       // Update world data
                       world.types[x][y][z] = world.getBlockType(x,y,z).type;
+                      if(rec) {
+                        updateNeighbors(checkPos, false);
+                      }
                     }
                   }
                 }
@@ -253,20 +267,20 @@
                     var tileData = world.getBlockType(tilePos.x, tilePos.y, tilePos.z);
                     // Update world data
                     world.grid[tilePos.x][tilePos.y][tilePos.z] = 1;
-                    world.types[tilePos.x][tilePos.y][tilePos.z] = tileData.t;
+                    world.types[tilePos.x][tilePos.y][tilePos.z] = tileData.type;
                     // Place voxel
                     voxel.position.copy(pos).add(nor);
                     voxel.name = tilePos.toArray().toString();
                     container.add(voxel);
                     voxels.push(voxel);
                     // Place tile
-                    tile = tiles[tileData.t].clone();
+                    tile = tiles[tileData.type][tileData.style].clone();
                     tile.position.copy(tilePos);
                     tile.rotation.set(0, tileData.rot, 0);
                     tile.name = tilePos.toArray().toString().concat("t");
                     container.add(tile);
 
-                    updateNeighbors(tilePos);
+                    updateNeighbors(tilePos, true);
                   }
                 }
               }
