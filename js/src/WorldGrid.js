@@ -5,15 +5,18 @@ class WorldGrid {
         this.z = z;
 
         this.blockType = Object.freeze({
-            FLAT: 0,
-            CORNER: 1,
-            SOLO: 2,
+            FLAT: 0, // 4 neighbors
+            TRIPLE: 1, // 3 neighbors
+            CORNER: 2, // 2 neighbors, corner
+            LINE: 3, // 2 neighbors, line
+            ONE: 4, // 1 neighbor
+            SOLO: 5, // 0 neighbors
             EMPTY: -1
         });
 
         this.styleType = Object.freeze({
             NORMAL: 0,
-            FAT: 1
+            FAT: 1 // Block on top
         });
 
         this.grid = new Array();
@@ -70,7 +73,7 @@ class WorldGrid {
         }
         // Determine what type of block this is
         if(neighbors == 0 || neighbors == 1) {
-            type = this.blockType.SOLO;
+            type = this.blockType.FLAT; // TODO: MAKE THIS SOLO
         }
         else if(neighbors == 2) {
             type = this.blockType.CORNER;
@@ -90,6 +93,21 @@ class WorldGrid {
                 type = this.blockType.FLAT;
             }
         }
+        else if(neighbors == 3) {
+            type = this.blockType.TRIPLE;
+            if(!n) {
+                rotation = 3*Math.PI/2;
+            }
+            else if(!e) {
+                rotation = 0;
+            }
+            else if(!w) {
+                rotation = Math.PI;
+            }
+            else {
+                rotation = Math.PI/2;
+            }
+        }
         else {
             type = this.blockType.FLAT;
         }
@@ -98,7 +116,7 @@ class WorldGrid {
             if(this.grid[x][y+1][z] == 0) {
                 style = this.styleType.NORMAL; // ROOF
             }
-            else if(this.types[x][y+1][z] == type) {
+            else if(this.grid[x][y+1][z] == 1) {
                 style = this.styleType.FAT;
             }
             else {

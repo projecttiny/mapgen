@@ -122,6 +122,9 @@
               tiles[0] = new Array();
               tiles[1] = new Array();
               tiles[2] = new Array();
+              tiles[3] = new Array();
+              tiles[4] = new Array();
+              tiles[5] = new Array();
               objLoader = new THREE.OBJLoader();
               objLoader.load('obj/flat.obj',
                 function(object) {
@@ -130,23 +133,47 @@
                   tiles[0][1] = object;
                 }
               );
-              objLoader.load('obj/corner.obj',
+              objLoader.load('obj/triple.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[1][0] = object;
+                  tiles[1][1] = object;
+                }
+              );
+              objLoader.load('obj/corner.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
+                  tiles[2][0] = object;
                 }
               );
               objLoader.load('obj/cornerFat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[1][1] = object;
+                  tiles[2][1] = object;
                 }
               );
+              // TODO: TWO NEIGHBORS LINE
+              objLoader.load('obj/flat.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
+                  tiles[3][0] = object;
+                  tiles[3][1] = object;
+                }
+              );
+              // TODO: ONE NEIGHBOR
+              objLoader.load('obj/flat.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
+                  tiles[4][0] = object;
+                  tiles[4][1] = object;
+                }
+              );
+              // TODO: SOLO BLOCK
               objLoader.load('obj/solo.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[2][0] = object;
-                  tiles[2][1] = object;
+                  tiles[5][0] = object;
+                  tiles[5][1] = object;
                 }
               );
             }
@@ -200,6 +227,7 @@
                       container.add(newTile);
                       // Update world data
                       world.types[x][y][z] = world.getBlockType(x,y,z).type;
+                      // Perform a second pass to account for new changes
                       if(rec) {
                         updateNeighbors(checkPos, false);
                       }
