@@ -109,7 +109,7 @@
               loadObjs();
               groundDepth = 0.5;
               setTimeout(loadWorld, 10, dim);
-              setTimeout(loadGround, 100);
+              loadGround(dim);
               container.position.y += groundDepth/2;
               container.position.x -= dim.x/2 - 0.5;
               container.position.y -= dim.y/2 - 0.5;
@@ -133,10 +133,15 @@
                   tiles[0][1] = object;
                 }
               );
-              objLoader.load('obj/triple.obj',
+              objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[1][0] = object;
+                }
+              );
+              objLoader.load('obj/tripleFat.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
                   tiles[1][1] = object;
                 }
               );
@@ -185,20 +190,30 @@
                 for(var y = 0; y < world.y; y++) {
                   for(var z = 0; z < world.z; z++) {
                     if(world.grid[x][y][z] == 1) {
-                      cube = new THREE.Mesh(gridGeo, gridMat);
-                      cube.position.set(x,y,z);
-                      container.add(cube);
-                      voxels.push(cube);
+                      var data = world.getBlockType(x, y, z);
+                      // Place voxel
+                      var pos = new THREE.Vector3(x,y,z);
+                      var voxel = new THREE.Mesh(gridGeo, gridMat);
+                      voxel.position.copy(pos);
+                      voxel.name = pos.toArray().toString();
+                      container.add(voxel);
+                      voxels.push(voxel);
+                      // Place tile
+                      tile = tiles[data.type][data.style].clone();
+                      tile.position.copy(pos);
+                      tile.rotation.set(0, data.rot, 0);
+                      tile.name = pos.toArray().toString().concat("t");
+                      container.add(tile);
                     }
                   }
                 }
               }
             }
 
-            function loadGround() {
+            function loadGround(dim) {
               var y = -0.5 - groundDepth/2;
-              for(var x = 0; x < world.x; x++) {
-                for(var z = 0; z < world.z; z++) {
+              for(var x = 0; x < dim.x; x++) {
+                for(var z = 0; z < dim.z; z++) {
                   cube = new THREE.Mesh(gridGeo, groundMat);
                   cube.scale.y = .5;
                   cube.position.set(x,y,z);
@@ -208,7 +223,7 @@
               }
             }
 
-            function updateNeighbors(tilePos, rec) {
+            function updateNeighbors(tilePos) {
               var xmin = Math.max(tilePos.x - 1, 0), xmax = Math.min(tilePos.x + 1, world.x - 1);
               var ymin = Math.max(tilePos.y - 1, 0), ymax = Math.min(tilePos.y + 1, world.y - 1);
               var zmin = Math.max(tilePos.z - 1, 0), zmax = Math.min(tilePos.z + 1, world.z - 1);
@@ -220,17 +235,14 @@
                       // Remove outdated tile
                       container.remove(container.getObjectByName(checkPos.toArray().toString().concat("t")));
                       // Add updated tile
-                      var newTile = tiles[world.getBlockType(x,y,z).type][world.getBlockType(x,y,z).style].clone();
+                      var data = world.getBlockType(x,y,z);
+                      var newTile = tiles[data.type][data.style].clone();
                       newTile.position.copy(checkPos);
-                      newTile.rotation.set(0, world.getBlockType(x,y,z).rot, 0);
+                      newTile.rotation.set(0, data.rot, 0);
                       newTile.name = checkPos.toArray().toString().concat("t");
                       container.add(newTile);
                       // Update world data
                       world.types[x][y][z] = world.getBlockType(x,y,z).type;
-                      // Perform a second pass to account for new changes
-                      if(rec) {
-                        updateNeighbors(checkPos, false);
-                      }
                     }
                   }
                 }
@@ -292,23 +304,23 @@
                   }
                   if(placed) {
                     var tilePos = new THREE.Vector3(pos.x + nor.x, pos.y + nor.y, pos.z + nor.z);
-                    var tileData = world.getBlockType(tilePos.x, tilePos.y, tilePos.z);
+                    var data = world.getBlockType(tilePos.x, tilePos.y, tilePos.z);
                     // Update world data
                     world.grid[tilePos.x][tilePos.y][tilePos.z] = 1;
-                    world.types[tilePos.x][tilePos.y][tilePos.z] = tileData.type;
+                    world.types[tilePos.x][tilePos.y][tilePos.z] = data.type;
                     // Place voxel
                     voxel.position.copy(pos).add(nor);
                     voxel.name = tilePos.toArray().toString();
                     container.add(voxel);
                     voxels.push(voxel);
                     // Place tile
-                    tile = tiles[tileData.type][tileData.style].clone();
+                    tile = tiles[data.type][data.style].clone();
                     tile.position.copy(tilePos);
-                    tile.rotation.set(0, tileData.rot, 0);
+                    tile.rotation.set(0, data.rot, 0);
                     tile.name = tilePos.toArray().toString().concat("t");
                     container.add(tile);
 
-                    updateNeighbors(tilePos, true);
+                    updateNeighbors(tilePos);
                   }
                 }
               }

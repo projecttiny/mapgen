@@ -25,6 +25,7 @@ class WorldGrid {
     }
 
     initGrid() {
+        var map = this.fbm();
         for(var x = 0; x < this.x; ++x) {
             this.grid[x] = new Array();
             this.types[x] = new Array();
@@ -33,7 +34,15 @@ class WorldGrid {
                 this.types[x][y] = new Array();
                 for(var z = 0; z < this.z; ++z)
                 {
-                    this.grid[x][y][z] = 0;
+                    if(y==0) {
+                        if(map[x][z] > 0.5) {
+                            this.grid[x][y][z] = 1;
+                            this.types[x][y][z] = this.blockType.EMPTY;
+                        }
+                    }
+                    else {
+                        this.grid[x][y][z] = 0;
+                    }
                     this.types[x][y][z] = this.blockType.EMPTY;
                 }
             }
@@ -94,18 +103,23 @@ class WorldGrid {
             }
         }
         else if(neighbors == 3) {
-            type = this.blockType.TRIPLE;
+            if(Math.round(Math.random()) == 1) {
+                type = this.blockType.TRIPLE; // TRIPLE
+            }
+            else {
+                type = this.blockType.FLAT;
+            }
             if(!n) {
                 rotation = 3*Math.PI/2;
             }
             else if(!e) {
                 rotation = 0;
             }
-            else if(!w) {
-                rotation = Math.PI;
+            else if(!s) {
+                rotation = Math.PI/2;
             }
             else {
-                rotation = Math.PI/2;
+                rotation = Math.PI;
             }
         }
         else {
@@ -135,7 +149,25 @@ class WorldGrid {
         return tile;
     }
 
-    getStyleType(x, y, z) {
+    fbm() {
+        var numOctaves = 3;
+        var map = new Array();
 
+        for(var x = 0; x < this.x; x ++) {
+            map[x] = new Array();
+            for(var y = 0; y < this.y; y ++) {
+                map[x][y] = 0;
+            }
+        }
+
+        for(var n = 0; n < numOctaves; n++) {
+            for(var x = 0; x < this.x; x += Math.pow(2, n)) {
+                for(var y = 0; y < this.y; y += Math.pow(2, n)) {
+                    map[x][y] = Math.min(map[x][y] + Math.random(), 1);
+                }
+            }
+        }
+
+        return map;
     }
 }
