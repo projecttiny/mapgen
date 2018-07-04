@@ -173,6 +173,12 @@ class WorldGrid {
     }
 
     fbm() {
+        var xseed = Math.random() * 5;
+        var yseed = Math.random() * 5;
+
+        console.log(xseed);
+        console.log(yseed);
+
         var map = new Array();
         var amp = 0.5;
         var freq = 16;
@@ -181,10 +187,9 @@ class WorldGrid {
             for(var y = 0; y < this.y; y++) {
                 var val = 0;
                 for(var i = 0; i < freq; i++) {
-                    val += amp * this.interp(x, y);
+                    val += amp * this.interp(x / xseed, y / yseed);
                     amp *= 0.25;
                 }
-                console.log(val);
                 map[x][y] = val;
             }
         }
