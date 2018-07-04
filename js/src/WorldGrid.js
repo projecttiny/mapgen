@@ -32,18 +32,21 @@ class WorldGrid {
             for(var y = 0; y < this.y; ++y) {
                 this.grid[x][y] = new Array();
                 this.types[x][y] = new Array();
-                for(var z = 0; z < this.z; ++z)
-                {
-                    if(y==0) {
-                        if(map[x][z] > 0.5) {
-                            this.grid[x][y][z] = 1;
-                            this.types[x][y][z] = this.blockType.EMPTY;
-                        }
+                for(var z = 0; z < this.z; ++z) {
+                    if(map[x][z] > 0) {
+                        this.grid[x][y][z] = 1;
                     }
                     else {
                         this.grid[x][y][z] = 0;
                     }
-                    this.types[x][y][z] = this.blockType.EMPTY;
+                }
+            }
+        }
+        for(var x = 0; x < this.x; ++x) {
+            for(var y = 0; y < this.y; ++y) {
+                for(var z = 0; z < this.z; ++z)
+                {
+                    this.types[x][y][z] = this.getBlockType(x,y,z).type;
                 }
             }
         }
@@ -149,25 +152,42 @@ class WorldGrid {
         return tile;
     }
 
+    random(x, y) {
+        var n = new THREE.Vector2(x,y);
+        return Math.floor(Math.sin(n.dot(new THREE.Vector2(12.9898, 4.1414))) * 43758.5453);
+    }
+
+    interp(x, y) {
+        var nums = new THREE.Vector2(Math.floor(x), Math.floor(y));
+        var decs = new THREE.Vector2(x - nums.x, y - nums.y);
+
+        var a = this.random(nums.x, nums.y);
+        var b = this.random(nums.x + 1, nums.y);
+        var c = this.random(nums.x, nums.y + 1);
+        var d = this.random(nums.x + 1, nums.y + 1);
+
+        var v = new THREE.Vector2(3.0 - 2.0 * decs.x, 3.0 - 2.0 * decs.y);
+        var u = (decs.multiply(decs)).multiply(v);
+
+        return (a*(1.0-u.x)+b*u.x + (c - a)* u.x * (1.0 - u.x) + (d - b) * u.x * u.y);
+    }
+
     fbm() {
-        var numOctaves = 3;
         var map = new Array();
-
-        for(var x = 0; x < this.x; x ++) {
+        var amp = 0.5;
+        var freq = 16;
+        for(var x = 0; x < this.x; x++) {
             map[x] = new Array();
-            for(var y = 0; y < this.y; y ++) {
-                map[x][y] = 0;
-            }
-        }
-
-        for(var n = 0; n < numOctaves; n++) {
-            for(var x = 0; x < this.x; x += Math.pow(2, n)) {
-                for(var y = 0; y < this.y; y += Math.pow(2, n)) {
-                    map[x][y] = Math.min(map[x][y] + Math.random(), 1);
+            for(var y = 0; y < this.y; y++) {
+                var val = 0;
+                for(var i = 0; i < freq; i++) {
+                    val += amp * this.interp(x, y);
+                    amp *= 0.25;
                 }
+                console.log(val);
+                map[x][y] = val;
             }
         }
-
         return map;
     }
 }
