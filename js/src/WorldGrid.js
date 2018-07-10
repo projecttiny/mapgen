@@ -25,7 +25,7 @@ class WorldGrid {
     }
 
     initGrid() {
-        var map = this.fbm();
+        var heightData = this.generateCliffs();
         for(var x = 0; x < this.x; ++x) {
             this.grid[x] = new Array();
             this.types[x] = new Array();
@@ -33,20 +33,7 @@ class WorldGrid {
                 this.grid[x][y] = new Array();
                 this.types[x][y] = new Array();
                 for(var z = 0; z < this.z; ++z) {
-                    if(map[x][z] > 0) {
-                        this.grid[x][y][z] = 1;
-                    }
-                    else {
-                        this.grid[x][y][z] = 0;
-                    }
-                }
-            }
-        }
-        for(var x = 0; x < this.x; ++x) {
-            for(var y = 0; y < this.y; ++y) {
-                for(var z = 0; z < this.z; ++z)
-                {
-                    this.types[x][y][z] = this.getBlockType(x,y,z).type;
+                    this.grid[x][y][z] = heightData[y][x][z];
                 }
             }
         }
@@ -154,45 +141,96 @@ class WorldGrid {
 
     random(x, y) {
         var n = new THREE.Vector2(x,y);
-        return Math.floor(Math.sin(n.dot(new THREE.Vector2(12.9898, 4.1414))) * 43758.5453);
+        var dummy = new THREE.Vector2(12.9898, 4.1414);
+        var dot = n.dot(dummy);
+        return Math.floor(Math.sin(dot) * 43758.5453);
     }
 
-    interp(x, y) {
-        var nums = new THREE.Vector2(Math.floor(x), Math.floor(y));
-        var decs = new THREE.Vector2(x - nums.x, y - nums.y);
+    noise(x, y) {
+        var nums = new THREE.Vector2(Math.floor(x), Math.floor(y)).multiplyScalar(100);
+        var decs = new THREE.Vector2(x - Math.floor(x), y - Math.floor(y));
 
         var a = this.random(nums.x, nums.y);
         var b = this.random(nums.x + 1, nums.y);
         var c = this.random(nums.x, nums.y + 1);
         var d = this.random(nums.x + 1, nums.y + 1);
 
-        var v = new THREE.Vector2(3.0 - 2.0 * decs.x, 3.0 - 2.0 * decs.y);
+        var v = new THREE.Vector2(3.0 - 2.0 * decs.x, 3.0 - decs.multiplyScalar(2));
         var u = (decs.multiply(decs)).multiply(v);
 
-        return (a*(1.0-u.x)+b*u.x + (c - a)* u.x * (1.0 - u.x) + (d - b) * u.x * u.y);
+        return (a*(1.0-u.x)+b*u.x + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y);
     }
 
-    fbm() {
-        var xseed = Math.random() * 5;
-        var yseed = Math.random() * 5;
+    fbm(x, y) {
+        var val = 0.0;
+        var amp = .2;
+        var octaves = 20;
 
-        console.log(xseed);
-        console.log(yseed);
+        for(var i = 0; i < octaves; i++) {
+            val += amp * this.noise(120 * x, 120 * y);
+            x *= .5;
+            y *= .5;
+            amp *= 0.5;
+        }
+        console.log(val);
+        return (val / 10000 + 1) / 3;
+    }
 
-        var map = new Array();
-        var amp = 0.5;
-        var freq = 16;
+    generateCliffs() {
+        var iter = Math.round(Math.random() * this.y); // Random int [0, this.y]
+        var ret = new Array();
+        var dummy = new Array(); // Used for first iteration
+        // Initialize 3D arrays
         for(var x = 0; x < this.x; x++) {
-            map[x] = new Array();
+            ret[x] = new Array();
+            dummy[x] = new Array();
             for(var y = 0; y < this.y; y++) {
-                var val = 0;
-                for(var i = 0; i < freq; i++) {
-                    val += amp * this.interp(x / xseed, y / yseed);
-                    amp *= 0.25;
+                ret[x][y] = new Array();
+                dummy[x][y] = 1;
+                for(var z = 0; z < this.z; z++) {
+                    ret[x][y][z] = 0;
                 }
-                map[x][y] = val;
             }
         }
-        return map;
+        // For {iter} iterations, generate a rock shape, and mask it with the previous layer
+        for(var i = 0; i < iter; i++) {
+            if(i == 0) {
+                ret[i] = this.generateLayer(dummy);
+            }
+            else {
+                ret[i] = this.generateLayer(ret[i-1]);
+            }
+        }
+        return ret;
+    }
+
+    generateLayer(prevLayer) {
+        var n = 3; // Number of times to place a random-sized cluster
+        var layer = new Array();
+        // Initialize {layer}
+        for(var x = 0; x < this.x; x++) {
+            layer[x] = new Array();
+            for(var z = 0; z < this.z; z++) {
+                layer[x][z] = 0;
+            }
+        }
+        // Place a random-sized cluster on this layer n times
+        for(var i = 0; i < n; i++) {
+            var size = Math.round(Math.random() * 2) + 2; // Random int [2,5]
+            // x- and z-origin of the cluster
+            var xstart = Math.round(Math.random() * this.x) - Math.round(size/2);
+            var zstart = Math.round(Math.random() * this.z) - Math.round(size/2);
+            // Clip mask the cluster to the world size, and then to {prevLayer}
+            for(var x = Math.round(-size/2); x < Math.round(size/2); x++) {
+                for(var z = 0; z < size; z++) {
+                    var boundsX = Math.max(Math.min(x + xstart, this.x - 1), 0);
+                    var boundsZ = Math.max(Math.min(z + zstart, this.z - 1), 0);
+                    if(prevLayer[boundsX][boundsZ] == 1) {
+                        layer[boundsX][boundsZ] = 1;
+                    }
+                }
+            }
+        }
+        return layer;
     }
 }
