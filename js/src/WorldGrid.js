@@ -37,6 +37,13 @@ class WorldGrid {
                 }
             }
         }
+        for(var x = 0; x < this.x; ++x) {
+            for(var y = 0; y < this.y; ++y) {
+                for(var z = 0; z < this.z; ++z) {
+                    this.types[x][y][z] = this.getBlockType(x, y, z);
+                }
+            }
+        }
     }
 
     getBlockType(x, y, z) {
