@@ -89,14 +89,18 @@
               lambertMat = new THREE.MeshLambertMaterial( {color:0xde7766} );
 
               // Add lights to the scene
-              plight = new THREE.DirectionalLight(0xffffff, 1, 100);
-              plight.position.set(0,20,3);
-              slight = new THREE.DirectionalLight(0xffffff, .5, 100);
-              slight.position.set(0,0,-3);
-              scene.add(plight);
-              scene.add(slight);
-              alight = new THREE.AmbientLight( 0xffffff, 0.35 );
-              scene.add(alight);
+              light1 = new THREE.DirectionalLight(0xffffff, 1, 100);
+              light1.position.set(-8,7.2,0);
+              light2 = new THREE.DirectionalLight(0xffffff, 1, 100);
+              light2.position.set(8,7.2,0);
+              light3 = new THREE.DirectionalLight(0x6688dd, .85, 100);
+              light3.position.set(0,0,8);
+              light4 = new THREE.DirectionalLight(0x6688dd, .85, 100);
+              light4.position.set(0,0,-8);
+              scene.add(light1);
+              scene.add(light2);
+              scene.add(light3);
+              scene.add(light4);
 
               // Add rollover geometry to the scene
               targetGeo = new THREE.PlaneGeometry(.75, .75);
