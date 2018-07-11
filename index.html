@@ -110,9 +110,8 @@
               targetMesh.visible = false;
               container.add(targetMesh);
 
-              loadObjs();
+              loadObjs(); // This will also load the world, using the onLoad callback
               groundDepth = 0.33;
-              setTimeout(loadWorld, 10, dim);
               loadGround(dim);
               container.position.y += groundDepth/2;
               container.position.x -= dim.x/2 - 0.5;
@@ -196,6 +195,7 @@
                   object.children[0].material = lambertMat;
                   tiles[5][0] = object;
                   tiles[5][1] = object;
+                  loadWorld();
                 }
               );
             }
