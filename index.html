@@ -43,7 +43,7 @@
               //camera = new THREE.OrthographicCamera(-aspectRatio * viewSize / 2, aspectRatio * viewSize / 2, viewSize / 2, -viewSize / 2, -600, 600);
               camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
               scene.add(camera);
-              camera.position.set(-12, 8, -6);
+              camera.position.set(-Math.random()*12, Math.random()*8, -6);
 
               // Create a renderer and add it to the DOM.
               renderer = new THREE.WebGLRenderer({antialias:true});
@@ -111,7 +111,7 @@
               container.add(targetMesh);
 
               loadObjs();
-              groundDepth = 0.5;
+              groundDepth = 0.33;
               setTimeout(loadWorld, 10, dim);
               loadGround(dim);
               container.position.y += groundDepth/2;
@@ -130,32 +130,40 @@
               tiles[4] = new Array();
               tiles[5] = new Array();
               objLoader = new THREE.OBJLoader();
+              // Import regular block
               objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[0][0] = object;
+                }
+              );
+              objLoader.load('obj/flatFat.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
                   tiles[0][1] = object;
                 }
               );
+              // Import triple block
               objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[1][0] = object;
                 }
               );
-              objLoader.load('obj/tripleFat.obj',
+              objLoader.load('obj/flatFat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[1][1] = object;
                 }
               );
-              objLoader.load('obj/corner.obj',
+              // Import corner block
+              objLoader.load('obj/cornerNew.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[2][0] = object;
                 }
               );
-              objLoader.load('obj/cornerFat.obj',
+              objLoader.load('obj/flatFat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[2][1] = object;
@@ -169,16 +177,21 @@
                   tiles[3][1] = object;
                 }
               );
-              // TODO: ONE NEIGHBOR
-              objLoader.load('obj/flat.obj',
+              // Import one block
+              objLoader.load('obj/one.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[4][0] = object;
+                }
+              );
+              objLoader.load('obj/flatFat.obj',
+                function(object) {
+                  object.children[0].material = lambertMat;
                   tiles[4][1] = object;
                 }
               );
               // TODO: SOLO BLOCK
-              objLoader.load('obj/solo.obj',
+              objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
                   tiles[5][0] = object;
@@ -219,7 +232,7 @@
               for(var x = 0; x < dim.x; x++) {
                 for(var z = 0; z < dim.z; z++) {
                   cube = new THREE.Mesh(gridGeo, groundMat);
-                  cube.scale.y = .5;
+                  cube.scale.set(1,groundDepth,1);
                   cube.position.set(x,y,z);
                   container.add(cube);
                   voxels.push(cube);
@@ -293,7 +306,7 @@
                       break;
                     case 1:
                       if(pos.y < 0 && nor.y > 0) { // Place block on ground
-                        pos.y -= 0.25;
+                        pos.y = -1;
                         placed = true;
                       }
                       else if (pos.y + nor.y < dim.y && pos.y + nor.y >= 0) {
@@ -376,7 +389,7 @@
                     targetMesh.visible = false;
                   }
                   targetMesh.rotation.set(Math.PI/2, 0, 0);
-                  targetMesh.position.y += nor.y / 3.999;
+                  targetMesh.position.y += nor.y * groundDepth / 1.999;
                   return;
                 }
 

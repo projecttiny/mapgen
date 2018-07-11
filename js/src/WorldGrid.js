@@ -78,8 +78,23 @@ class WorldGrid {
             }
         }
         // Determine what type of block this is
-        if(neighbors == 0 || neighbors == 1) {
+        if(neighbors == 0) {
             type = this.blockType.FLAT; // TODO: MAKE THIS SOLO
+        }
+        else if(neighbors == 1) {
+            type = this.blockType.ONE;
+            if(n) {
+                rotation = 0;
+            }
+            else if(e) {
+                rotation = Math.PI/2;
+            }
+            else if(s) {
+                rotation = Math.PI;
+            }
+            else {
+                rotation = 3*Math.PI/2;
+            }
         }
         else if(neighbors == 2) {
             type = this.blockType.CORNER;
@@ -134,7 +149,7 @@ class WorldGrid {
                 style = this.styleType.NORMAL;
             }
         }
-        else {
+        else { // Max altitude
             style = this.styleType.NORMAL; // ROOF
         }
 
@@ -144,43 +159,6 @@ class WorldGrid {
             'rot': rotation
         };
         return tile;
-    }
-
-    random(x, y) {
-        var n = new THREE.Vector2(x,y);
-        var dummy = new THREE.Vector2(12.9898, 4.1414);
-        var dot = n.dot(dummy);
-        return Math.floor(Math.sin(dot) * 43758.5453);
-    }
-
-    noise(x, y) {
-        var nums = new THREE.Vector2(Math.floor(x), Math.floor(y)).multiplyScalar(100);
-        var decs = new THREE.Vector2(x - Math.floor(x), y - Math.floor(y));
-
-        var a = this.random(nums.x, nums.y);
-        var b = this.random(nums.x + 1, nums.y);
-        var c = this.random(nums.x, nums.y + 1);
-        var d = this.random(nums.x + 1, nums.y + 1);
-
-        var v = new THREE.Vector2(3.0 - 2.0 * decs.x, 3.0 - decs.multiplyScalar(2));
-        var u = (decs.multiply(decs)).multiply(v);
-
-        return (a*(1.0-u.x)+b*u.x + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y);
-    }
-
-    fbm(x, y) {
-        var val = 0.0;
-        var amp = .2;
-        var octaves = 20;
-
-        for(var i = 0; i < octaves; i++) {
-            val += amp * this.noise(120 * x, 120 * y);
-            x *= .5;
-            y *= .5;
-            amp *= 0.5;
-        }
-        console.log(val);
-        return (val / 10000 + 1) / 3;
     }
 
     generateCliffs() {
@@ -225,11 +203,11 @@ class WorldGrid {
         for(var i = 0; i < n; i++) {
             var size = Math.round(Math.random() * 2) + 2; // Random int [2,5]
             // x- and z-origin of the cluster
-            var xstart = Math.round(Math.random() * this.x) - Math.round(size/2);
-            var zstart = Math.round(Math.random() * this.z) - Math.round(size/2);
+            var xstart = Math.round(Math.random() * this.x);
+            var zstart = Math.round(Math.random() * this.z);
             // Clip mask the cluster to the world size, and then to {prevLayer}
             for(var x = Math.round(-size/2); x < Math.round(size/2); x++) {
-                for(var z = 0; z < size; z++) {
+                for(var z = Math.round(-size/2); z < Math.round(size/2); z++) {
                     var boundsX = Math.max(Math.min(x + xstart, this.x - 1), 0);
                     var boundsZ = Math.max(Math.min(z + zstart, this.z - 1), 0);
                     if(prevLayer[boundsX][boundsZ] == 1) {
