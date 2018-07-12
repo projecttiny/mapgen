@@ -28,6 +28,9 @@
 
             var voxels = [], tiles = [];
 
+            // Used to make sure that all OBJ's finished loading
+            var startTime, endTime;
+
             init();
             render();
 
@@ -110,11 +113,9 @@
               targetMesh.visible = false;
               container.add(targetMesh);
 
-              var startTime = new Date(); // Used to make sure that all OBJ's finished loading
-              var endTime;
-              loadObjs();
+              startTime = Date.now();
+              loadObjs(); // Will also load the world in the onLoad callback
               groundDepth = 0.33;
-              setTimeout(loadWorld, endTime - startTime, dim);
               loadGround(dim);
               container.position.y += groundDepth/2;
               container.position.x -= dim.x/2 - 0.5;
@@ -198,7 +199,8 @@
                   object.children[0].material = lambertMat;
                   tiles[5][0] = object;
                   tiles[5][1] = object;
-                  endTime = new Date();
+                  endTime = Date.now();
+                  setTimeout(loadWorld, endTime - startTime, dim);
                 }
               );
             }
