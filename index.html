@@ -13,9 +13,6 @@
           <script src="js/loaders/OBJLoader.js"></script>
           <script src="js/src/WorldGrid.js"></script>
           <script>
-            window.onload = function() {
-              loadWorld(dim);
-            }
             var camera, scene, container, renderer;
             var world, dim, groundDepth;
             var plight, alight, cube;
@@ -32,6 +29,10 @@
             var voxels = [], tiles = [];
 
             var colors = [];
+
+            window.onload = function() {
+              loadWorld(dim);
+            };
 
             init();
             render();
@@ -128,8 +129,6 @@
             }
 
             function loadObjs() {
-              console.log("Starting to load .obj\'s..");
-              var count = 0; // Hacky fix so that the last loaded obj calls loadWorld()
               tiles[0] = new Array();
               tiles[1] = new Array();
               tiles[2] = new Array();
