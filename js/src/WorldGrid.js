@@ -161,11 +161,12 @@ class WorldGrid {
         return tile;
     }
 
+    // Returns an array of 2D arrays, each representing a layer of tiles
     generateCliffs() {
         var iter = Math.round(Math.random() * this.y); // Random int [0, this.y]
         var ret = new Array();
         var dummy = new Array(); // Used for first iteration
-        // Initialize 3D arrays
+        // Initialize arrays
         for(var x = 0; x < this.x; x++) {
             ret[x] = new Array();
             dummy[x] = new Array();
