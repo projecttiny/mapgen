@@ -25,7 +25,7 @@ class WorldGrid {
     }
 
     initGrid() {
-        var heightData = this.generateCliffs();
+        var cliffs = this.generateCliffs();
         for(var x = 0; x < this.x; ++x) {
             this.grid[x] = new Array();
             this.types[x] = new Array();
@@ -33,7 +33,7 @@ class WorldGrid {
                 this.grid[x][y] = new Array();
                 this.types[x][y] = new Array();
                 for(var z = 0; z < this.z; ++z) {
-                    this.grid[x][y][z] = heightData[y][x][z];
+                    this.grid[x][y][z] = cliffs[y][x][z];
                 }
             }
         }
@@ -164,36 +164,35 @@ class WorldGrid {
     // Returns an array of 2D arrays, each representing a layer of tiles
     generateCliffs() {
         var iter = Math.round(Math.random() * this.y); // Random int [0, this.y]
-        var ret = new Array();
+        var cliffs = new Array();
         var dummy = new Array(); // Used for first iteration
         // Initialize arrays
         for(var x = 0; x < this.x; x++) {
-            ret[x] = new Array();
+            cliffs[x] = new Array();
             dummy[x] = new Array();
             for(var y = 0; y < this.y; y++) {
-                ret[x][y] = new Array();
+                cliffs[x][y] = new Array();
                 dummy[x][y] = 1;
                 for(var z = 0; z < this.z; z++) {
-                    ret[x][y][z] = 0;
+                    cliffs[x][y][z] = 0;
                 }
             }
         }
-        // For {iter} iterations, generate a rock shape, and mask it with the previous layer
         for(var i = 0; i < iter; i++) {
             if(i == 0) {
-                ret[i] = this.generateLayer(dummy);
+                cliffs[i] = this.generateLayer(dummy);
             }
             else {
-                ret[i] = this.generateLayer(ret[i-1]);
+                cliffs[i] = this.generateLayer(cliffs[i-1]);
             }
         }
-        return ret;
+        return cliffs;
     }
 
     generateLayer(prevLayer) {
         var n = 3; // Number of times to place a random-sized cluster
         var layer = new Array();
-        // Initialize {layer}
+        // Initialize layer
         for(var x = 0; x < this.x; x++) {
             layer[x] = new Array();
             for(var z = 0; z < this.z; z++) {
@@ -206,7 +205,7 @@ class WorldGrid {
             // x- and z-origin of the cluster
             var xstart = Math.round(Math.random() * this.x);
             var zstart = Math.round(Math.random() * this.z);
-            // Clip mask the cluster to the world size, and then to {prevLayer}
+            // Clip the cluster to the world size, and then to prevLayer
             for(var x = Math.round(-size/2); x < Math.round(size/2); x++) {
                 for(var z = Math.round(-size/2); z < Math.round(size/2); z++) {
                     var boundsX = Math.max(Math.min(x + xstart, this.x - 1), 0);

@@ -23,12 +23,11 @@
             var targetGeo, targetMat, targetMesh;
             var gridGeo, gridMat, groundMat;
             var lambertMat;
+            var colors = [];
 
             var objLoader;
 
             var voxels = [], tiles = [];
-
-            var colors = [];
 
             window.onload = function() {
               loadWorld(dim);
@@ -116,8 +115,8 @@
               targetMesh.visible = false;
               container.add(targetMesh);
 
-              createPalette(dim.y);
-              loadObjs();
+              createPalettes(dim.y);
+              tiles = loadObjs();
               groundDepth = 0.33;
               loadGround(dim);
               container.position.y += groundDepth/2;
@@ -129,83 +128,86 @@
             }
 
             function loadObjs() {
-              tiles[0] = new Array();
-              tiles[1] = new Array();
-              tiles[2] = new Array();
-              tiles[3] = new Array();
-              tiles[4] = new Array();
-              tiles[5] = new Array();
+              var tileArray = new Array();
+              tileArray[0] = new Array();
+              tileArray[1] = new Array();
+              tileArray[2] = new Array();
+              tileArray[3] = new Array();
+              tileArray[4] = new Array();
+              tileArray[5] = new Array();
               objLoader = new THREE.OBJLoader();
               // Import regular block
               objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[0][0] = object;
+                  tileArray[0][0] = object;
                 }
               );
               objLoader.load('obj/flatFat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[0][1] = object;
+                  tileArray[0][1] = object;
                 }
               );
               // Import triple block
               objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[1][0] = object;
+                  tileArray[1][0] = object;
                 }
               );
               objLoader.load('obj/flatFat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[1][1] = object;
+                  tileArray[1][1] = object;
                 }
               );
               // Import corner block
               objLoader.load('obj/cornerNew.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[2][0] = object;
+                  tileArray[2][0] = object;
                 }
               );
               objLoader.load('obj/flatFat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[2][1] = object;
+                  tileArray[2][1] = object;
                 }
               );
               // TODO: TWO NEIGHBORS LINE
               objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[3][0] = object;
-                  tiles[3][1] = object;
+                  tileArray[3][0] = object;
+                  tileArray[3][1] = object;
                 }
               );
               // Import one block
               objLoader.load('obj/one.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[4][0] = object;
+                  tileArray[4][0] = object;
                 }
               );
               objLoader.load('obj/flatFat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[4][1] = object;
+                  tileArray[4][1] = object;
                 }
               );
               // TODO: SOLO BLOCK
               objLoader.load('obj/flat.obj',
                 function(object) {
                   object.children[0].material = lambertMat;
-                  tiles[5][0] = object;
-                  tiles[5][1] = object;
+                  tileArray[5][0] = object;
+                  tileArray[5][1] = object;
                 }
               );
+              return tileArray;
             }
 
+            // Loads tile data from WorldGrid
             function loadWorld(dim) {
               // Draw from world
               world = new WorldGrid(dim.x, dim.y, dim.z);
@@ -245,6 +247,7 @@
               }
             }
 
+            // Creates a ground platform
             function loadGround(dim) {
               var y = -0.5 - groundDepth/2;
               cube = new THREE.Mesh(gridGeo, groundMat);
@@ -253,7 +256,8 @@
               container.add(cube);
             }
 
-            function createPalette(n) {
+            // Creates a color for each layer of tiles
+            function createPalettes(n) {
               var gray = new THREE.Color(0xd79588);
               for(var i = 0; i < n; i++) {
                 var alpha = Math.random();
@@ -263,6 +267,7 @@
               }
             }
 
+            // Updates tile visuals of blocks surrounding tilePos
             function updateNeighbors(tilePos) {
               var xmin = Math.max(tilePos.x - 1, 0), xmax = Math.min(tilePos.x + 1, world.x - 1);
               var ymin = Math.max(tilePos.y - 1, 0), ymax = Math.min(tilePos.y + 1, world.y - 1);
