@@ -115,8 +115,10 @@
               targetMesh.visible = false;
               container.add(targetMesh);
 
+              // Load rock tiles and ground platform
               createPalettes(dim.y);
-              tiles = loadObjs();
+              objLoader = new THREE.OBJLoader();
+              loadTiles();
               groundDepth = 0.33;
               loadGround(dim);
               container.position.y += groundDepth/2;
@@ -127,84 +129,74 @@
 
             }
 
-            function loadObjs() {
-              var tileArray = new Array();
-              tileArray[0] = new Array();
-              tileArray[1] = new Array();
-              tileArray[2] = new Array();
-              tileArray[3] = new Array();
-              tileArray[4] = new Array();
-              tileArray[5] = new Array();
-              objLoader = new THREE.OBJLoader();
+            // Wrapper function to deal with unwanted async loading
+            function getObjPromise(url) {
+              return new Promise(resolve => {
+                objLoader.load(url, resolve);
+              });
+            }
+
+            function loadTiles() {
+              tiles[0] = new Array();
+              tiles[1] = new Array();
+              tiles[2] = new Array();
+              tiles[3] = new Array();
+              tiles[4] = new Array();
+              tiles[5] = new Array();
+
               // Import regular block
-              objLoader.load('obj/flat.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[0][0] = object;
-                }
-              );
-              objLoader.load('obj/flatFat.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[0][1] = object;
-                }
-              );
+              getObjPromise('obj/flat.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[0][0] = object;
+              });
+              getObjPromise('obj/flatFat.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[0][1] = object;
+              });
+
               // Import triple block
-              objLoader.load('obj/flat.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[1][0] = object;
-                }
-              );
-              objLoader.load('obj/flatFat.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[1][1] = object;
-                }
-              );
+              getObjPromise('obj/flat.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[1][0] = object;
+              });
+              getObjPromise('obj/flatFat.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[1][1] = object;
+              });
+
               // Import corner block
-              objLoader.load('obj/cornerNew.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[2][0] = object;
-                }
-              );
-              objLoader.load('obj/flatFat.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[2][1] = object;
-                }
-              );
+              getObjPromise('obj/cornerNew.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[2][0] = object;
+              });
+              getObjPromise('obj/flatFat.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[2][1] = object;
+              });
+
               // TODO: TWO NEIGHBORS LINE
-              objLoader.load('obj/flat.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[3][0] = object;
-                  tileArray[3][1] = object;
-                }
-              );
+              getObjPromise('obj/flat.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[3][0] = object;
+                tiles[3][1] = object;
+              });
+
               // Import one block
-              objLoader.load('obj/one.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[4][0] = object;
-                }
-              );
-              objLoader.load('obj/flatFat.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[4][1] = object;
-                }
-              );
+              getObjPromise('obj/one.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[4][0] = object;
+              });
+              getObjPromise('obj/flatFat.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[4][1] = object;
+              });
+
               // TODO: SOLO BLOCK
-              objLoader.load('obj/flat.obj',
-                function(object) {
-                  object.children[0].material = lambertMat;
-                  tileArray[5][0] = object;
-                  tileArray[5][1] = object;
-                }
-              );
-              return tileArray;
+              getObjPromise('obj/flat.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[5][0] = object;
+                tiles[5][1] = object;
+              });
             }
 
             // Loads tile data from WorldGrid
@@ -419,7 +411,7 @@
                     targetMesh.visible = false;
                   }
                   targetMesh.rotation.set(Math.PI/2, 0, 0);
-                  targetMesh.position.y += nor.y * groundDepth / 1.999;
+                  targetMesh.position.y = -.499;
                   return;
                 }
 
