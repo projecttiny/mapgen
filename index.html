@@ -58,6 +58,7 @@
               // Create event listeners for mouse and keyboard inputs.
               document.addEventListener('mousemove', onDocumentMouseMove, false);
               document.addEventListener('mousedown', onDocumentMouseDown, false);
+              document.addEventListener('mouseup', onDocumentMouseUp, false);
               document.addEventListener('keydown', onDocumentKeyDown, false);
               document.addEventListener('keyup', onDocumentKeyUp, false);
               // Create an event listener that resizes the renderer with the browser window.
@@ -132,6 +133,7 @@
               });
             }
 
+            // Loads tile .obj's and calls loadWorld() when finished
             function loadTiles() {
               tiles[0] = new Array();
               tiles[1] = new Array();
@@ -252,7 +254,7 @@
             function createPalettes(n) {
               var gray = new THREE.Color(0xd79588);
               for(var i = 0; i < n; i++) {
-                var alpha = Math.random();
+                var alpha = Math.pow(Math.random(), 2);
                 var col = new THREE.Color(0xd26e5d).lerp(gray, alpha);
                 var mat = new THREE.MeshLambertMaterial( {color:col} );
                 colors[i] = mat;
@@ -289,6 +291,7 @@
 
             function onDocumentMouseMove(event) {
               event.preventDefault();
+              var intersects = raycaster.intersectObjects(voxels);
               mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
               render();
               updateTarget();
@@ -300,6 +303,7 @@
               var intersects = raycaster.intersectObjects(voxels);
               if(intersects.length > 0)
               {
+                controls.enabled = false; // Disable OrbitControls when user clicks on tiles
                 var intersect = intersects[0];
                 var pos = intersect.object.position.clone();
                 var nor = intersect.face.normal;
@@ -365,6 +369,10 @@
               }
               render();
               updateTarget();
+            }
+
+            function onDocumentMouseUp(event) {
+              controls.enabled = true;
             }
 
             function onDocumentKeyDown(event) {
