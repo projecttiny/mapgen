@@ -144,59 +144,63 @@
               tiles[4] = new Array();
               tiles[5] = new Array();
 
+              var promises = new Array();
+              var i = 0;
               // Import regular block
-              getObjPromise('obj/flat.obj').then(object => {
+              promises[i++] = getObjPromise('obj/flat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[0][0] = object;
               });
-              getObjPromise('obj/flatFat.obj').then(object => {
+              promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[0][1] = object;
               });
 
               // Import triple block
-              getObjPromise('obj/flat.obj').then(object => {
+              promises[i++] = getObjPromise('obj/flat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[1][0] = object;
               });
-              getObjPromise('obj/flatFat.obj').then(object => {
+              promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[1][1] = object;
               });
 
               // Import corner block
-              getObjPromise('obj/cornerNew.obj').then(object => {
+              promises[i++] = getObjPromise('obj/cornerNew.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[2][0] = object;
               });
-              getObjPromise('obj/flatFat.obj').then(object => {
+              promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[2][1] = object;
               });
 
               // TODO: TWO NEIGHBORS LINE
-              getObjPromise('obj/flat.obj').then(object => {
+              promises[i++] = getObjPromise('obj/flat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[3][0] = object;
                 tiles[3][1] = object;
               });
 
               // Import one block
-              getObjPromise('obj/one.obj').then(object => {
+              promises[i++] = getObjPromise('obj/one.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[4][0] = object;
               });
-              getObjPromise('obj/flatFat.obj').then(object => {
+              promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[4][1] = object;
               });
 
               // TODO: SOLO BLOCK
-              getObjPromise('obj/flat.obj').then(object => {
+              promises[i++] = getObjPromise('obj/flat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[5][0] = object;
                 tiles[5][1] = object;
               });
+
+              return Promise.all(promises).then();
             }
 
             // Loads tile data from WorldGrid
