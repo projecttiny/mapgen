@@ -79,7 +79,7 @@ class WorldGrid {
         }
         // Determine what type of block this is
         if(neighbors == 0) {
-            type = this.blockType.FLAT; // TODO: MAKE THIS SOLO
+            type = this.blockType.SOLO;
         }
         else if(neighbors == 1) {
             type = this.blockType.ONE;
@@ -143,7 +143,12 @@ class WorldGrid {
                 style = this.styleType.NORMAL; // ROOF
             }
             else if(this.grid[x][y+1][z] == 1) {
-                style = this.styleType.FAT;
+                if(this.types[x][y][z] == this.blockType.SOLO) {
+                    style = this.styleType.FAT;
+                }
+                else if(this.types[x][y+1][z] != this.blockType.SOLO) {
+                    style = this.styleType.FAT;
+                }
             }
             else {
                 style = this.styleType.NORMAL;

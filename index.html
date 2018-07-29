@@ -9,8 +9,18 @@
         </head>
         <body>
           <script src="js/build/three.js"></script>
-          <script src="js/controls/OrbitControls.js"></script>
-          <script src="js/loaders/OBJLoader.js"></script>
+          <script src="js/THREE/controls/OrbitControls.js"></script>
+          <script src="js/THREE/loaders/OBJLoader.js"></script>
+
+          <!-- <script src="js/THREE/postprocess/EffectComposer.js"></script>
+          <script src="js/THREE/shaders/CopyShader.js"></script>
+          <script src="js/THREE/postprocess/ShaderPass.js"></script>
+          <script src="js/THREE/postprocess/RenderPass.js"></script>
+          <script src="js/THREE/postprocess/SAOPass.js"></script>
+          <script src="js/THREE/shaders/SAOShader.js"></script>
+          <script src="js/THREE/shaders/DepthLimitedBlurShader.js"></script>
+          <script src="js/THREE/shaders/UnpackDepthRGBAShader.js"></script> -->
+
           <script src="js/src/WorldGrid.js"></script>
           <script>
             var camera, scene, container, renderer;
@@ -21,13 +31,15 @@
             var isShiftDown = false;
 
             var targetGeo, targetMat, targetMesh;
-            var gridGeo, gridMat, groundMat;
+            var gridGeo, gridMat, groundMat, groundMat2;
             var lambertMat;
             var colors = [];
 
             var objLoader;
 
             var voxels = [], tiles = [];
+
+            var composer;
 
             init();
             render();
@@ -88,6 +100,8 @@
               gridGeo.computeFaceNormals();
 
               groundMat = new THREE.MeshLambertMaterial( {color:0xaa7755} );
+              groundMat2 = new THREE.MeshLambertMaterial( {color:0xaa7755, opacity: 0.5, transparent: true} );
+              groundMat3 = new THREE.MeshLambertMaterial( {color:0xaa7755, opacity: 0.15, transparent: true} );
               lambertMat = new THREE.MeshLambertMaterial( {color:0xde7766} );
 
               // Add lights to the scene
@@ -124,6 +138,16 @@
               container.position.z -= dim.z/2 - 0.5;
               scene.add(container);
 
+              // Set up Ambient Occlusion shader & render pass
+              // composer = new THREE.EffectComposer(renderer);
+              // renderPass = new THREE.RenderPass(scene, camera);
+              // composer.addPass(renderPass);
+              // saoPass = new THREE.SAOPass(scene, camera, false, true);
+              // saoPass.params.saoBias = 1;
+              // saoPass.params.saoIntensity = 0.0002,
+              // saoPass.params.saoKernelRadius = 5,
+              // saoPass.renderToScreen = true;
+              // composer.addPass(saoPass);
             }
 
             // Wrapper function to deal with unwanted async loading
@@ -135,12 +159,10 @@
 
             // Loads tile .obj's and calls loadWorld() when finished
             function loadTiles() {
-              tiles[0] = new Array();
-              tiles[1] = new Array();
-              tiles[2] = new Array();
-              tiles[3] = new Array();
-              tiles[4] = new Array();
-              tiles[5] = new Array();
+              for(var i = 0; i < 10; ++i)
+              {
+                tiles[i] = new Array();
+              }
 
               var promises = new Array();
               var i = 0;
@@ -156,6 +178,7 @@
 
               // Import triple block
               promises[i++] = getObjPromise('obj/flat.obj').then(object => {
+                object.children[0].material = lambertMat;
                 tiles[1][0] = object;
               });
               promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
@@ -164,7 +187,8 @@
               });
 
               // Import corner block
-              promises[i++] = getObjPromise('obj/cornerNew.obj').then(object => {
+              promises[i++] = getObjPromise('obj/corner.obj').then(object => {
+                object.children[0].material = lambertMat;
                 tiles[2][0] = object;
               });
               promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
@@ -180,7 +204,7 @@
               });
 
               // Import one block
-              promises[i++] =  getObjPromise('obj/one.obj').then(object => {
+              promises[i++] =  getObjPromise('obj/one2.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[4][0] = object;
               });
@@ -189,10 +213,13 @@
                 tiles[4][1] = object;
               });
 
-              // TODO: SOLO BLOCK
-              promises[i++] = getObjPromise('obj/flat.obj').then(object => {
+              // Import solo block
+              promises[i++] = getObjPromise('obj/solo.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[5][0] = object;
+              });
+              promises[i++] = getObjPromise('obj/soloFat.obj').then(object => {
+                object.children[0].material = lambertMat;
                 tiles[5][1] = object;
               });
 
@@ -244,10 +271,18 @@
             // Creates a ground platform
             function loadGround(dim) {
               var y = -0.5 - groundDepth/2;
-              cube = new THREE.Mesh(gridGeo, groundMat);
-              cube.scale.set(dim.x * 1.2 ,groundDepth,dim.z * 1.2);
-              cube.position.set(dim.x/2 - 0.5,y,dim.z/2 - 0.5);
-              container.add(cube);
+              ground = new THREE.Mesh(gridGeo, groundMat);
+              ground.scale.set(dim.x * 1.2, groundDepth,dim.z * 1.2);
+              ground.position.set(dim.x/2 - 0.5,y,dim.z/2 - 0.5);
+
+              ground2 = new THREE.Mesh(gridGeo, groundMat2);
+              ground2.scale.set(dim.x * 1.198, groundDepth, dim.z * 1.198);
+              ground2.position.set(dim.x/2 - 0.5, -3 + groundDepth/2, dim.z/2 - 0.5);
+              ground2.position.x -= dim.x/2 - 0.5;
+              ground2.position.z -= dim.z/2 - 0.5;
+
+              container.add(ground);
+              scene.add(ground2);
             }
 
             // Creates a color for each layer of tiles
@@ -262,7 +297,7 @@
             }
 
             // Updates tile visuals of blocks surrounding tilePos
-            function updateNeighbors(tilePos) {
+            function updateNeighbors(tilePos, rec) {
               var xmin = Math.max(tilePos.x - 1, 0), xmax = Math.min(tilePos.x + 1, world.x - 1);
               var ymin = Math.max(tilePos.y - 1, 0), ymax = Math.min(tilePos.y + 1, world.y - 1);
               var zmin = Math.max(tilePos.z - 1, 0), zmax = Math.min(tilePos.z + 1, world.z - 1);
@@ -286,6 +321,9 @@
                     }
                   }
                 }
+              }
+              if(rec) {
+                updateNeighbors(tilePos, false);
               }
             }
 
@@ -317,7 +355,7 @@
                   container.remove(container.getObjectByName(pos.toArray().toString()));
                   world.grid[pos.x][pos.y][pos.z] = 0;
                   voxels.splice(voxels.indexOf(intersect.object), 1);
-                  updateNeighbors(pos);
+                  updateNeighbors(pos, true);
                 }
                 else {
                   var placed = false;
@@ -363,7 +401,7 @@
                     tile.name = tilePos.toArray().toString().concat("t");
                     container.add(tile);
 
-                    updateNeighbors(tilePos);
+                    updateNeighbors(tilePos, true);
                   }
                 }
               }
@@ -444,7 +482,8 @@
             }
 
             function render() {
-				      renderer.render( scene, camera );
+              renderer.render( scene, camera );
+              //composer.render();
             }
 
             function animate() {
