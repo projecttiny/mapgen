@@ -268,7 +268,7 @@
 
                         // Place tile
                         var index = data.type;
-                        tile = tiles[index][Math.round(Math.pow(Math.random(), 3) * (tiles[index].length - 1))].clone();
+                        tile = tiles[index][Math.round(Math.pow(Math.random(), 3)) * (tiles[index].length - 1)].clone();
                         tile.children[0].material = colors[y];
                         tile.position.copy(pos);
                         tile.rotation.set(0, data.rot, 0);
