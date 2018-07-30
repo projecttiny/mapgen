@@ -1,4 +1,4 @@
-![](./images/pic1.png)
+![](./images/pic0.png)
 
 mapgen
 ------------
