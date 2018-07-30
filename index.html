@@ -170,17 +170,14 @@
               promises[i++] = getObjPromise('obj/flat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[0][0] = object;
-                tiles[0][1] = object;
-                tiles[0][2] = object;
-                tiles[0][3] = object;
               });
               promises[i++] = getObjPromise('obj/flat2.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[0][4] = object;
+                tiles[0][1] = object;
               });
               promises[i++] = getObjPromise('obj/flat3.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[0][5] = object;
+                tiles[0][2] = object;
               });
               promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
                 object.children[0].material = lambertMat;
@@ -227,11 +224,10 @@
               promises[i++] = getObjPromise('obj/solo.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[8][0] = object;
-                tiles[8][1] = object;
               });
               promises[i++] = getObjPromise('obj/solo2.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[8][2] = object;
+                tiles[8][1] = object;
               });
               promises[i++] = getObjPromise('obj/soloFat.obj').then(object => {
                 object.children[0].material = lambertMat;
@@ -272,7 +268,7 @@
 
                         // Place tile
                         var index = data.type;
-                        tile = tiles[index][Math.round(Math.random() * (tiles[index].length - 1))].clone();
+                        tile = tiles[index][Math.round(Math.pow(Math.random(), 3) * (tiles[index].length - 1))].clone();
                         tile.children[0].material = colors[y];
                         tile.position.copy(pos);
                         tile.rotation.set(0, data.rot, 0);
