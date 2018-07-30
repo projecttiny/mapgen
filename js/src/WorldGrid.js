@@ -6,17 +6,16 @@ class WorldGrid {
 
         this.blockType = Object.freeze({
             FLAT: 0, // 4 neighbors
-            TRIPLE: 1, // 3 neighbors
+            FLATF: 1,
             CORNER: 2, // 2 neighbors, corner
-            LINE: 3, // 2 neighbors, line
-            ONE: 4, // 1 neighbor
-            SOLO: 5, // 0 neighbors
+            CORNERF: 3,
+            LINE: 4, // 2 neighbors, line
+            LINEF: 5,
+            ONE: 6, // 1 neighbor
+            ONEF: 7,
+            SOLO: 8, // 0 neighbors
+            SOLOF: 9,
             EMPTY: -1
-        });
-
-        this.styleType = Object.freeze({
-            NORMAL: 0,
-            FAT: 1 // Block on top
         });
 
         this.grid = new Array();
@@ -33,6 +32,7 @@ class WorldGrid {
                 this.grid[x][y] = new Array();
                 this.types[x][y] = new Array();
                 for(var z = 0; z < this.z; ++z) {
+                    this.types[x][y][z] = this.blockType.EMPTY;
                     this.grid[x][y][z] = cliffs[y][x][z];
                 }
             }
@@ -40,7 +40,7 @@ class WorldGrid {
         for(var x = 0; x < this.x; ++x) {
             for(var y = 0; y < this.y; ++y) {
                 for(var z = 0; z < this.z; ++z) {
-                    this.types[x][y][z] = this.getBlockType(x, y, z);
+                    this.types[x][y][z] = this.getBlockType(x, y, z).type;
                 }
             }
         }
@@ -48,7 +48,6 @@ class WorldGrid {
 
     getBlockType(x, y, z) {
         var type = this.blockType.EMPTY;
-        var style = this.styleType.NORMAL;
         var neighbors = 0; // The number of adjacent neighbors
         var rotation = 0;
         var n = false, s = false, e = false, w = false; // Used to calculate orientation
@@ -114,55 +113,25 @@ class WorldGrid {
                 type = this.blockType.FLAT;
             }
         }
-        else if(neighbors == 3) {
-            if(Math.round(Math.random()) == 1) {
-                type = this.blockType.TRIPLE; // TRIPLE
-            }
-            else {
-                type = this.blockType.FLAT;
-            }
-            if(!n) {
-                rotation = 3*Math.PI/2;
-            }
-            else if(!e) {
-                rotation = 0;
-            }
-            else if(!s) {
-                rotation = Math.PI/2;
-            }
-            else {
-                rotation = Math.PI;
-            }
-        }
         else {
             type = this.blockType.FLAT;
         }
+
         // Determine what style of block this is
         if(y < this.y - 1) {
-            if(this.grid[x][y+1][z] == 0) {
-                style = this.styleType.NORMAL; // ROOF
-            }
-            else if(this.grid[x][y+1][z] == 1) {
-                if(this.types[x][y][z] == this.blockType.SOLO) {
-                    style = this.styleType.FAT;
-                }
-                else if(this.types[x][y+1][z] != this.blockType.SOLO) {
-                    style = this.styleType.FAT;
+            if(this.grid[x][y+1][z] == 1) {
+                if(!(type == this.blockType.FLAT && this.types[x][y+1][z] == this.blockType.SOLO)) {
+                    type += 1;
                 }
             }
-            else {
-                style = this.styleType.NORMAL;
-            }
-        }
-        else { // Max altitude
-            style = this.styleType.NORMAL; // ROOF
         }
 
         var tile = {
             'type': type,
-            'style': style,
             'rot': rotation
+
         };
+
         return tile;
     }
 

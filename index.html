@@ -159,9 +159,9 @@
 
             // Loads tile .obj's and calls loadWorld() when finished
             function loadTiles() {
-              for(var i = 0; i < 10; ++i)
+              for(var n = 0; n < 10; ++n)
               {
-                tiles[i] = new Array();
+                tiles[n] = [];
               }
 
               var promises = new Array();
@@ -170,57 +170,67 @@
               promises[i++] = getObjPromise('obj/flat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[0][0] = object;
+                tiles[0][1] = object;
+                tiles[0][2] = object;
+              });
+              promises[i++] = getObjPromise('obj/flat2.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[0][3] = object;
               });
               promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
-                object.children[0].material = lambertMat;
-                tiles[0][1] = object;
-              });
-
-              // Import triple block
-              promises[i++] = getObjPromise('obj/flat.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[1][0] = object;
-              });
-              promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
-                object.children[0].material = lambertMat;
-                tiles[1][1] = object;
               });
 
               // Import corner block
               promises[i++] = getObjPromise('obj/corner.obj').then(object => {
                 object.children[0].material = lambertMat;
                 tiles[2][0] = object;
+                tiles[2][1] = object;
+              });
+              promises[i++] = getObjPromise('obj/corner2.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[2][2] = object;
               });
               promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[2][1] = object;
+                tiles[3][0] = object;
               });
 
               // TODO: TWO NEIGHBORS LINE
               promises[i++] = getObjPromise('obj/flat.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[3][0] = object;
-                tiles[3][1] = object;
+                tiles[4][0] = object;
+                tiles[5][0] = object;
               });
 
               // Import one block
+              promises[i++] =  getObjPromise('obj/one.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[6][0] = object;
+              });
               promises[i++] =  getObjPromise('obj/one2.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[4][0] = object;
+                tiles[6][1] = object;
               });
               promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[4][1] = object;
+                tiles[7][0] = object;
               });
 
               // Import solo block
               promises[i++] = getObjPromise('obj/solo.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[5][0] = object;
+                tiles[8][0] = object;
+                tiles[8][1] = object;
+              });
+              promises[i++] = getObjPromise('obj/solo2.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[8][2] = object;
               });
               promises[i++] = getObjPromise('obj/soloFat.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[5][1] = object;
+                tiles[9][0] = object;
               });
 
               Promise.all(promises).then(() => {
@@ -235,6 +245,7 @@
               for(var x = 0; x < world.x; x++) {
                 for(var y = -1; y < world.y; y++) {
                   for(var z = 0; z < world.z; z++) {
+                    // Add invisible voxels for selection on ground
                     if(y < 0) {
                       var pos = new THREE.Vector3(x,y,z);
                       var voxel = new THREE.Mesh(gridGeo, gridMat);
@@ -255,7 +266,8 @@
                         voxels.push(voxel);
 
                         // Place tile
-                        tile = tiles[data.type][data.style].clone();
+                        var index = data.type;
+                        tile = tiles[index][Math.round(Math.random() * (tiles[index].length - 1))].clone();
                         tile.children[0].material = colors[y];
                         tile.position.copy(pos);
                         tile.rotation.set(0, data.rot, 0);
@@ -304,13 +316,14 @@
               for(var x = xmin; x <= xmax; x++) {
                 for(var y = ymin; y <= ymax; y++) {
                   for(var z = zmin; z <= zmax; z++) {
-                    if(world.grid[x][y][z] != 0 && world.getBlockType(x, y, z).t != world.types[x][y][z]) {
+                    if(world.grid[x][y][z] != 0 && world.getBlockType(x, y, z).type != world.types[x][y][z]) {
                       var checkPos = new THREE.Vector3(x, y, z);
                       // Remove outdated tile
                       container.remove(container.getObjectByName(checkPos.toArray().toString().concat("t")));
                       // Add updated tile
                       var data = world.getBlockType(x,y,z);
-                      var newTile = tiles[data.type][data.style].clone();
+                      var index = data.type;
+                      var newTile = tiles[index][Math.round(Math.random() * (tiles[index].length - 1))].clone();
                       newTile.children[0].material = colors[y];
                       newTile.position.copy(checkPos);
                       newTile.rotation.set(0, data.rot, 0);
@@ -394,7 +407,8 @@
                     container.add(voxel);
                     voxels.push(voxel);
                     // Place tile
-                    tile = tiles[data.type][data.style].clone();
+                    var index = data.type;
+                    tile = tiles[index][Math.round(Math.random() * (tiles[index].length - 1))].clone();
                     tile.children[0].material = colors[tilePos.y];
                     tile.position.copy(tilePos);
                     tile.rotation.set(0, data.rot, 0);
