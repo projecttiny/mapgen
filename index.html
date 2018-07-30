@@ -324,7 +324,7 @@
                       // Add updated tile
                       var data = world.getBlockType(x,y,z);
                       var index = data.type;
-                      var newTile = tiles[index][Math.round(Math.random() * (tiles[index].length - 1))].clone();
+                      var newTile = tiles[index][Math.round(Math.pow(Math.random(), 3)) * (tiles[index].length - 1)].clone();
                       newTile.children[0].material = colors[y];
                       newTile.position.copy(checkPos);
                       newTile.rotation.set(0, data.rot, 0);
@@ -409,7 +409,7 @@
                     voxels.push(voxel);
                     // Place tile
                     var index = data.type;
-                    tile = tiles[index][Math.round(Math.random() * (tiles[index].length - 1))].clone();
+                    tile = tiles[index][Math.round(Math.pow(Math.random(), 3)) * (tiles[index].length - 1)].clone();
                     tile.children[0].material = colors[tilePos.y];
                     tile.position.copy(tilePos);
                     tile.rotation.set(0, data.rot, 0);
