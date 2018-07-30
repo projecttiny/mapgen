@@ -172,10 +172,15 @@
                 tiles[0][0] = object;
                 tiles[0][1] = object;
                 tiles[0][2] = object;
+                tiles[0][3] = object;
               });
               promises[i++] = getObjPromise('obj/flat2.obj').then(object => {
                 object.children[0].material = lambertMat;
-                tiles[0][3] = object;
+                tiles[0][4] = object;
+              });
+              promises[i++] = getObjPromise('obj/flat3.obj').then(object => {
+                object.children[0].material = lambertMat;
+                tiles[0][5] = object;
               });
               promises[i++] = getObjPromise('obj/flatFat.obj').then(object => {
                 object.children[0].material = lambertMat;
