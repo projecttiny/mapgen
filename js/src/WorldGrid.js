@@ -115,6 +115,8 @@ class WorldGrid {
         }
         else {
             type = this.blockType.FLAT;
+            var angles = [0, Math.PI/2, Math.PI, 3*Math.PI/2]
+            rotation = angles[Math.round(Math.random() * 3)];
         }
 
         // Determine what style of block this is
