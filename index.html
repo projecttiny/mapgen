@@ -13,7 +13,6 @@
           <script src="js/build/three.js"></script>
           <script src="js/THREE/controls/OrbitControls.js"></script>
           <script src="js/THREE/loaders/OBJLoader.js"></script>
-
           <script src="js/src/WorldGrid.js"></script>
           <script id="wood-vert" type="x-shader/x-vertex">
             varying vec3 vPos;
@@ -23,7 +22,6 @@
             varying vec3 light2;
             varying vec3 vert;
             varying float camDepth;
-            varying mat4 projMat;
 
             void main()	{
               vPos = vec3(modelViewMatrix * vec4(position, 1.0));
@@ -38,7 +36,7 @@
               camDepth = gl_Position.z / gl_Position.w;
             }
           </script>
-          <script id="wood-frag" type="x-shader/x-fragment" src="/glsl/woodFrag.glsl">
+          <script id="wood-frag" type="x-shader/x-fragment">
             // Noise functions from http://thebookofshaders.com/examples/
 
             #ifdef GL_ES
@@ -55,7 +53,6 @@
 
             uniform vec2 u_resolution;
             uniform float groundDepth;
-            uniform vec3 camPos;
 
             float random (in vec2 st) {
               return fract(sin(dot(st.xy,
@@ -165,10 +162,10 @@
                 vec3 rockCol = mix(vec3(210, 110, 93), vec3(215, 182, 150), fbm(vec2(height) / 0.0842)) / 255.0;
                 col = rockCol * 0.7 + col * 0.25;
 
-                vec2 worley = cellular(unPos.xz * 1.5 + vec2(20.4));
+                vec2 worley = cellular(unPos.xz * 2.0 + vec2(42.12));
                 float worleyDist = worley.y - worley.x;
                 float fbmVal = fbm(unPos.xz / 1.2 + 2.0 * vec2(unPos.y)) + 0.5;
-                worleyDist = clamp((max(worleyDist, fbmVal * 1.05) - 0.95) * 16.0, 0.0, 1.0);
+                worleyDist = clamp((max(worleyDist - .5, fbmVal * 1.1) - 0.95) * 16.0, 0.0, 1.0);
 
                 float lightCol1 = dot(normalize(light1-vPos), normalize(vNor));
                 float lightCol2 = dot(normalize(light2-vPos), normalize(vNor));
@@ -248,11 +245,6 @@
 
                 renderer.setSize(WIDTH, HEIGHT);
                 camera.aspect = window.innerWidth / window.innerHeight;
-                /* Commented out code used for othographic camera */
-                // camera.left = -aspectRatio * viewSize / 2;
-                // camera.right = aspectRatio * viewSize / 2;
-                // camera.top = viewSize / 2;
-                // camera.bottom = -viewSize / 2;
                 camera.updateProjectionMatrix();
               });
 
@@ -267,8 +259,7 @@
               gridGeo.computeFaceNormals();
 
               groundMat = new THREE.MeshLambertMaterial( {color:0xaa7755} );
-              groundMat2 = new THREE.MeshLambertMaterial( {color:0xaa7755, opacity: 0.5, transparent: true} );
-              groundMat3 = new THREE.MeshLambertMaterial( {color:0xaa7755, opacity: 0.15, transparent: true} );
+              groundMat2 = new THREE.MeshLambertMaterial( {color:0x845533} );
               grassMat = new THREE.MeshLambertMaterial( {color:0x306658} );
               rockMat = new THREE.MeshLambertMaterial( {color:0xbb7766 } );
 
@@ -277,21 +268,20 @@
               light1.position.set(-8,7.2,0);
               light2 = new THREE.DirectionalLight(0xffffff, 1, 100);
               light2.position.set(8,7.2,0);
-              light3 = new THREE.DirectionalLight(0x6688dd, .85, 100);
+              light3 = new THREE.DirectionalLight(0x6688ff, .85, 100);
               light3.position.set(0,0,8);
-              light4 = new THREE.DirectionalLight(0x6688dd, .85, 100);
+              light4 = new THREE.DirectionalLight(0x6688ff, .85, 100);
               light4.position.set(0,0,-8);
               scene.add(light1);
               scene.add(light2);
               scene.add(light3);
               scene.add(light4);
 
-              groundDepth = 0.33;
+              groundDepth = 0.25;
 
               var uniforms = {
                 u_resolution: { type: "v2", value: new THREE.Vector2(42, 42) },
-                groundDepth: groundDepth,
-                camPos: { type: "v3", value: camera.position }
+                groundDepth: groundDepth
               };
 
               postMaterial = new THREE.ShaderMaterial( {
@@ -466,7 +456,6 @@
                         tile.name = pos.toArray().toString().concat("t");
 
                         container.add(tile);
-
                         if(y == dim.y - 1) {
                           spawnDeco(pos);
                         }
@@ -488,8 +477,8 @@
               ground.position.set(dim.x/2 - 0.5, y, dim.z/2 - 0.5);
 
               ground2 = new THREE.Mesh(gridGeo, groundMat2);
-              ground2.scale.set(dim.x * 1.198, groundDepth, dim.z * 1.198);
-              ground2.position.set(dim.x/2 - 0.5, -3 + groundDepth/2, dim.z/2 - 0.5);
+              ground2.scale.set(dim.x * 1.198, groundDepth * 3, dim.z * 1.198);
+              ground2.position.set(dim.x/2 - 0.5, -3, dim.z/2 - 0.5);
               ground2.position.x -= dim.x/2 - 0.5;
               ground2.position.z -= dim.z/2 - 0.5;
 
@@ -552,7 +541,6 @@
 
             function onDocumentMouseMove(event) {
               event.preventDefault();
-              var intersects = raycaster.intersectObjects(voxels);
               mouse.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
               render();
               updateTarget();
@@ -574,15 +562,16 @@
                 var maxComp = getMaxComp(nor);
 
                 if(isShiftDown){
-                  container.remove(container.getObjectByName(pos.toArray().toString().concat("t")));
-                  container.remove(container.getObjectByName(pos.toArray().toString()));
-                  world.grid[pos.x][pos.y][pos.z] = 0;
-                  voxels.splice(voxels.indexOf(intersect.object), 1);
-                  updateNeighbors(pos, true);
+                  if(pos.y > -1) {
+                    container.remove(container.getObjectByName(pos.toArray().toString().concat("t")));
+                    container.remove(container.getObjectByName(pos.toArray().toString()));
+                    world.grid[pos.x][pos.y][pos.z] = 0;
+                    voxels.splice(voxels.indexOf(intersect.object), 1);
+                    updateNeighbors(pos, true);
+                  }
 
                   // Handle decorative items
                   container.remove(container.getObjectByName(pos.toArray().toString().concat("d")));
-                  console.log("removed" + pos.x + "," + pos.y + "," + pos.z);
                   if(pos.y > 0) {
                     if(world.grid[pos.x][pos.y-1][pos.z] == 1) {
                     var belowPos = new THREE.Vector3(pos.x, pos.y - 1, pos.z);

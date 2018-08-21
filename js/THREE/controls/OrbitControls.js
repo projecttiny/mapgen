@@ -35,8 +35,8 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	// How far you can orbit vertically, upper and lower limits.
 	// Range is 0 to Math.PI radians.
-	this.minPolarAngle = Math.PI/3.5; // radians
-	this.maxPolarAngle = 2*Math.PI/4; // radians
+	this.minPolarAngle = Math.PI/2.5; // radians
+	this.maxPolarAngle =this.minPolarAngle; // radians
 
 	// How far you can orbit horizontally, upper and lower limits.
 	// If set, must be a sub-interval of the interval [ - Math.PI, Math.PI ].
@@ -66,7 +66,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	// Set to true to automatically rotate around the target
 	// If auto-rotate is enabled, you must call controls.update() in your animation loop
 	this.autoRotate = false;
-	this.autoRotateSpeed = 2.0; // 30 seconds per round when fps is 60
+	this.autoRotateSpeed = 3.0; // 30 seconds per round when fps is 60
 
 	// Set to false to disable use of the keys
 	this.enableKeys = true;
