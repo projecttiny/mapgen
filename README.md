@@ -9,5 +9,4 @@ The online version can be found [here](https://ebogo1.github.io/mapgen/).
 Click to add a block, shift + click to remove one, click and drag to control the camera.
 
 ------------
-Inspired by Oskar Stålberg's [Brick Block](http://oskarstalberg.com/game/house/index.html)
-and Overwatch (Route 66).
+Inspired by Oskar Stålberg's [Brick Block](http://oskarstalberg.com/game/house/index.html).
