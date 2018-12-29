@@ -139,7 +139,9 @@ class WorldGrid {
 
     // Returns an array of 2D arrays, each representing a layer of tiles
     generateCliffs() {
-        var iter = Math.round(Math.random() * this.y); // Random int [0, this.y]
+        var rand = Math.random(); // Random [0,1]
+        // Set # layers
+        var iter = this.y - Math.round(rand * rand * this.y); // Weighted towards max
         var cliffs = new Array();
         var dummy = new Array(); // Used for first iteration
         // Initialize arrays
@@ -167,25 +169,46 @@ class WorldGrid {
 
     generateLayer(prevLayer) {
         var n = 3; // Number of times to place a random-sized cluster
+        var prevArea = 0; // Total number of blocks in previous layer
+        var xmax = 0, xmin = this.x - 1, zmax = 0, zmin = this.z - 1;
+        var maxArea = this.x * this.z;
         var layer = new Array();
         // Initialize layer
         for(var x = 0; x < this.x; x++) {
             layer[x] = new Array();
             for(var z = 0; z < this.z; z++) {
                 layer[x][z] = 0;
+                if(prevLayer[x][z] == 1) {
+                    prevArea++;
+                    xmin = Math.min(x, xmin);
+                    xmax = Math.max(x, xmax);
+                    zmin = Math.min(z, zmin);
+                    zmax = Math.max(z, zmax);
+                }
             }
         }
+        var xAvg = Math.ceil(0.5 * (xmin + xmax));
+        var zAvg = Math.ceil(0.5 * (zmin + zmax));
         // Place a random-sized cluster on this layer n times
         for(var i = 0; i < n; i++) {
-            var size = Math.round(Math.random() * 2) + 2; // Random int [2,5]
-            // x- and z-origin of the cluster
-            var xstart = Math.round(Math.random() * this.x);
-            var zstart = Math.round(Math.random() * this.z);
-            // Clip the cluster to the world size, and then to prevLayer
-            for(var x = Math.round(-size/2); x < Math.round(size/2); x++) {
-                for(var z = Math.round(-size/2); z < Math.round(size/2); z++) {
-                    var boundsX = Math.max(Math.min(x + xstart, this.x - 1), 0);
-                    var boundsZ = Math.max(Math.min(z + zstart, this.z - 1), 0);
+            // Pick cluster size
+            var sizeWeight = Math.min(prevArea / maxArea + 0.4, 1);
+            var rand = Math.min(Math.random() / sizeWeight, 1);
+            var size = Math.round(rand * 2) + 2; // Pick from [2,5]
+            // Pick cluster center (xc, zc)
+            var xc = Math.round(Math.random() * this.x);
+            var zc = Math.round(Math.random() * this.z);
+            if(prevLayer[Math.max(xAvg - Math.round(size/2), 0)][zAvg] != 1) { xc++; }
+            if(prevLayer[xAvg][Math.max(zAvg - Math.round(size/2), 0)] != 1) { zc++; }
+            if(prevLayer[Math.min(xAvg + Math.round(size/2), this.x - 1)][zAvg] != 1) { xc--; }
+            if(prevLayer[xAvg][Math.min(zAvg + Math.round(size/2), this.z - 1)] != 1) { zc--; }
+            // Add blocks around xstart and zstart
+            for(var x = xc - Math.floor(size/2); x < xc + Math.round(size/2); x++) {
+                for(var z = zc - Math.floor(size/2); z < zc + Math.round(size/2); z++) {
+                    // Clip the cluster to the world size...
+                    var boundsX = Math.max(Math.min(x, this.x - 1), 0);
+                    var boundsZ = Math.max(Math.min(z, this.z - 1), 0);
+                    // ...and then to previous later
                     if(prevLayer[boundsX][boundsZ] == 1) {
                         layer[boundsX][boundsZ] = 1;
                     }
